@@ -49,6 +49,7 @@
 
 -include("ejabberd.hrl").
 
+-define(HTTPHead,"application/x-www-form-urlencoded").
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
@@ -127,39 +128,7 @@ get_password_s(User, Server) ->
 
 %% @spec (User, Server) -> true | false | {error, Error}
 is_user_exists(User, Server) ->
-	?INFO_MSG("########~p AUTH__Server=~p~n",[is_user_exists,Server]),
-	HTTPServer =  ejabberd_config:get_local_option({http_server,Server}),
-	HTTPService = ejabberd_config:get_local_option({http_server_service_client,Server}),
-	HTTPTarget = string:concat(HTTPServer,HTTPService),
-	HTTPHead = "application/x-www-form-urlencoded",
-	%% 2013-10-22 : 新的请求协议如下，此处不必关心，success=true 即成功
-	%% INPUT {"username":"xxx"}
-	%% OUTPUT {"success":true,"entity":true}
-	UID = list_to_binary(User),
-	{Service,Method,Channel} = {list_to_binary("service.uri.pet_sso"),list_to_binary("isUsernameInuse"),list_to_binary("9")},
-	PostBody = {obj,[{"service",Service},{"method",Method},{"channel",Channel},{"params",{obj,[{"username",UID}]}}]},	
-	Form = "body="++rfc4627:encode(PostBody),
-	?INFO_MSG("##########################~p~n HTTP_TARGET=~p~nHTTP_PARAM=~p~n",[is_user_exists,HTTPTarget,Form]),
-	case httpc:request(post,{HTTPTarget,[],HTTPHead, Form},[],[]) of   
-        	{ok, {_,_,Body}} -> 
-			case rfc4627:decode(Body) of
-				{ok,Obj,_} -> 
-					case rfc4627:get_field(Obj,"success") of
-						{ok,true} ->
-							true;
-						{ok,false} ->
-							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
-							?INFO_MSG("liangc-login error: ~p~n",[binary_to_list(Entity)]),
-							false;
-						_ ->
-							false
-					end;
-				_ -> 
-					false
-			end ;
-        	{error, Reason} ->
-			?INFO_MSG("error cause ~p~n",[Reason])  
-    	end.
+	true.
 
 remove_user(User, Server) ->
     case extauth:remove_user(User, Server) of
@@ -196,40 +165,42 @@ get_cache_option(Host) ->
 
 %% @spec (User, Server, Password) -> true | false
 check_password_extauth(User, Server, Password) ->
-	?INFO_MSG("##########################~p AUTH_Server=~p~nUser=~p~n",[check_password_extauth,Server,User]),
-	HTTPServer =  ejabberd_config:get_local_option({http_server,Server}),
-	HTTPService = ejabberd_config:get_local_option({http_server_service_client,Server}),
-	HTTPTarget = string:concat(HTTPServer,HTTPService),
-	HTTPHead = "application/x-www-form-urlencoded",
-	%% 2013-10-22 : 新的请求协议如下,其中输出的 entity 属性中带有 token等信息，此处不必关心，success=true 即成功
-	%% INPUT {"service":"service.uri.pet_sso","method":"token","channel":"9","token":PWD}
-	%% OUTPUT {"success":true,"entity":{}}
-	{PWD} = {list_to_binary(Password)},
-	{Service,Method,Channel} = {list_to_binary("service.uri.pet_sso"),list_to_binary("token"),list_to_binary("9")},
-	PostBody = {obj,[{"service",Service},{"method",Method},{"channel",Channel},{"token",PWD}]},	
-	Form = "body="++rfc4627:encode(PostBody),
-	?INFO_MSG("##########################~p~nHTTP_TARGET=~p~nFORM=~p~n",[check_password_extauth,HTTPTarget,Form]),
-    	case httpc:request(post,{HTTPTarget,[],HTTPHead, Form},[],[]) of   
-        	{ok, {_,_,Body}}-> 
-			case rfc4627:decode(Body) of 
-				{ok,Obj,_Re} -> 
-					case rfc4627:get_field(Obj,"success") of 
-						{ok,true} -> 
-							true;
-						{ok,false} ->
-							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
-							?INFO_MSG("liangc-login error: ~p~n",[binary_to_list(Entity)]),
-							false;
-						_ -> 
-							false
-					end;
-				{error, Reason}->
-					?INFO_MSG("error cause ~p~n",[Reason]) 
-			end ;
-        	{error, Reason}->
-			?INFO_MSG("error cause ~p~n",[Reason])  
-    	end.
-
+	AUTH_ENABLE =  ejabberd_config:get_local_option({auth_enable,Server}),
+	?INFO_MSG("###### liangc-auth ::> AUTH_ENABLE=~p ; Server=~p ; User=~p ; Password=~p",[AUTH_ENABLE,Server,User,Password]),
+	case AUTH_ENABLE of 
+		false ->
+			true;
+		_->
+			HTTPTarget =  ejabberd_config:get_local_option({http_server,Server}),
+			%% INPUT ::> {"sn":"123456789","service":"service.sso","method":"check_token","params":{"token":"987654321"}}
+			%% OUTPUT {"success":true,"entity":{}}
+			{SN,TOKEN} = {list_to_binary(os:cmd("uuidgen")--"\n"),list_to_binary(Password)},
+			{Service,Method} = {list_to_binary("service.sso"),list_to_binary("check_token")},
+			PostBody = {obj,[{"service",Service},{"method",Method},{"sn",SN},{"params",{obj,[{"token",TOKEN}]}}]},	
+			Form = "body="++rfc4627:encode(PostBody),
+			?INFO_MSG("###### liangc-auth HTTP_TARGET=~p ; FORM=~p",[HTTPTarget,Form]),
+		    	case httpc:request(post,{HTTPTarget,[],?HTTPHead, Form},[],[]) of   
+		        	{ok, {_,_,Body}}-> 
+					?INFO_MSG("##### liangc-auth return: ~p~n",[Body]),
+					case rfc4627:decode(Body) of 
+						{ok,Obj,_Re} -> 
+							case rfc4627:get_field(Obj,"success") of 
+								{ok,true} -> 
+									true;
+								{ok,false} ->
+									{ok,Entity} = rfc4627:get_field(Obj,"entity"),
+									?INFO_MSG("liangc-auth error: ~p~n",[binary_to_list(Entity)]),
+									false;
+								_ -> 
+									false
+							end;
+						{error, Reason}->
+							?INFO_MSG("##### liangc-auth error cause ~p~n",[Reason]) 
+					end ;
+		        	{error, Reason}->
+					?INFO_MSG("###### liangc-auth error cause ~p~n",[Reason])  
+			end
+	end.
 %% @spec (User, Server, Password) -> true | false
 try_register_extauth(User, Server, Password) ->
     extauth:try_register(User, Server, Password).

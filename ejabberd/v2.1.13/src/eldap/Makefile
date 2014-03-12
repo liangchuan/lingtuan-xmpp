@@ -8,8 +8,8 @@ LIBS =
 
 ASN_FLAGS = -bber_bin +optimize
 
-ERLANG_CFLAGS = -I/app/erlang-otp/lib/erlang/lib/erl_interface-3.7.13/include -I/app/erlang-otp/lib/erlang/usr/include
-ERLANG_LIBS = -L/app/erlang-otp/lib/erlang/lib/erl_interface-3.7.13/lib -lerl_interface -lei
+ERLANG_CFLAGS = -I/app/erlang/lib/erlang/lib/erl_interface-3.7.14/include -I/app/erlang/lib/erlang/usr/include
+ERLANG_LIBS = -L/app/erlang/lib/erlang/lib/erl_interface-3.7.14/lib -lerl_interface -lei
 
 EFLAGS += -DSSL40
 EFLAGS += -I ..
@@ -30,15 +30,15 @@ all:    $(BEAMS) ELDAPv3.beam eldap_filter_yecc.beam
 ELDAPv3.beam: ELDAPv3.erl
 
 ELDAPv3.erl:       ELDAPv3.asn
-	/app/erlang-otp/bin/erlc $(ASN_FLAGS) -W $(EFLAGS) $<
+	/app/erlang/bin/erlc $(ASN_FLAGS) -W $(EFLAGS) $<
 
 eldap_filter_yecc.beam: eldap_filter_yecc.erl
 
 eldap_filter_yecc.erl: eldap_filter_yecc.yrl
-	/app/erlang-otp/bin/erlc -W $<
+	/app/erlang/bin/erlc -W $<
 
 $(OUTDIR)/%.beam:	%.erl ELDAPv3.erl eldap_filter_yecc.erl
-	/app/erlang-otp/bin/erlc -W $(EFLAGS) -o $(OUTDIR) $<
+	/app/erlang/bin/erlc -W $(EFLAGS) -o $(OUTDIR) $<
 
 clean:
 	rm -f ELDAPv3.asn1db

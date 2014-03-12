@@ -6,8 +6,8 @@ CPPFLAGS = -I/usr/local/ssl/include -g -O2 -Wall
 LDFLAGS = 
 LIBS = 
 
-ERLANG_CFLAGS = -I/app/erlang-otp/lib/erlang/lib/erl_interface-3.7.13/include -I/app/erlang-otp/lib/erlang/usr/include
-ERLANG_LIBS = -L/app/erlang-otp/lib/erlang/lib/erl_interface-3.7.13/lib -lerl_interface -lei
+ERLANG_CFLAGS = -I/app/erlang/lib/erlang/lib/erl_interface-3.7.14/include -I/app/erlang/lib/erlang/usr/include
+ERLANG_LIBS = -L/app/erlang/lib/erlang/lib/erl_interface-3.7.14/lib -lerl_interface -lei
 
 EFLAGS += -I ..
 EFLAGS += -pz ..
@@ -30,7 +30,7 @@ all: mod_pubsub_odbc.erl $(ERLBEHAVBEAMS) $(BEAMS)
 $(BEAMS): $(ERLBEHAVBEAMS)
 
 $(OUTDIR)/%.beam:       %.erl
-	/app/erlang-otp/bin/erlc -W $(EFLAGS) -o $(OUTDIR) $<
+	/app/erlang/bin/erlc -W $(EFLAGS) -o $(OUTDIR) $<
 
 clean:
 	rm -f $(BEAMS)

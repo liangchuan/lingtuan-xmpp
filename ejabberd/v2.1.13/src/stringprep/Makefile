@@ -6,8 +6,8 @@ CPPFLAGS = -I/usr/local/ssl/include -g -O2 -Wall
 LDFLAGS = 
 LIBS = 
 
-ERLANG_CFLAGS = -I/app/erlang-otp/lib/erlang/lib/erl_interface-3.7.13/include -I/app/erlang-otp/lib/erlang/usr/include
-ERLANG_LIBS = -L/app/erlang-otp/lib/erlang/lib/erl_interface-3.7.13/lib -lerl_interface -lei
+ERLANG_CFLAGS = -I/app/erlang/lib/erlang/lib/erl_interface-3.7.14/include -I/app/erlang/lib/erlang/usr/include
+ERLANG_LIBS = -L/app/erlang/lib/erlang/lib/erl_interface-3.7.14/lib -lerl_interface -lei
 
 # Assume Linux-style dynamic library flags
 DYNAMIC_LIB_CFLAGS = -fpic -shared
@@ -36,7 +36,7 @@ BEAMS = $(addprefix $(OUTDIR)/,$(SOURCES:.erl=.beam))
 all:    $(BEAMS) $(ERLSHLIBS)
 
 $(OUTDIR)/%.beam:       %.erl
-	/app/erlang-otp/bin/erlc -W $(EFLAGS) -o $(OUTDIR) $<
+	/app/erlang/bin/erlc -W $(EFLAGS) -o $(OUTDIR) $<
 
 #all:	$(ERLSHLIBS)
 #	erl -s make all report "{outdir, \"..\"}" -noinput -s erlang halt

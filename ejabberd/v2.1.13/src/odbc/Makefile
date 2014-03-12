@@ -25,7 +25,7 @@ BEAMS = $(addprefix $(OUTDIR)/,$(SOURCES:.erl=.beam))
 all:    $(BEAMS)
 
 $(OUTDIR)/%.beam:       %.erl
-	/app/erlang/bin/erlc -W $(EFLAGS) -o $(OUTDIR) $<
+	/app/erlang/bin/erlc -W $(EFLAGS) -Dgeneric -o $(OUTDIR) $<
 
 clean:
 	rm -f $(BEAMS)
