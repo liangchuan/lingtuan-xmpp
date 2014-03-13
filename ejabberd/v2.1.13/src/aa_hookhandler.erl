@@ -15,9 +15,9 @@
 -export([
 	 start_link/0,
 	 user_send_packet_handler/3,
-	 offline_message_hook_handler/3,
-	 roster_in_subscription_handler/6
-	 %roster_out_subscription_handler/6
+	 offline_message_hook_handler/3
+	 %% roster_in_subscription_handler/6
+	 %% roster_out_subscription_handler/6
 ]).
 
 start_link() ->
@@ -55,7 +55,7 @@ get_text_message_form_packet_result( Body )->
 %% 离线消息处理器
 %% 钩子回调
 offline_message_hook_handler(From, To, Packet) ->
-	?INFO_MSG("FFFFFFFFFFFFFFFFF===From=~p~nTo=~p~nPacket=~p~n",[From, To, Packet]),
+	?INFO_MSG("OFFLINE_MESSAGE_HOOK ::::> From=~p~nTo=~p~nPacket=~p~n",[From, To, Packet]),
 	{xmlelement,"message",Header,_ } = Packet,
 	%%这里只推送 msgtype=normalchat 的消息，以下是判断
 	lists:foreach(
@@ -67,7 +67,7 @@ offline_message_hook_handler(From, To, Packet) ->
 						"normalchat" ->
 							send_offline_message(From ,To ,Packet );
 						_ ->
-							?INFO_MSG("FFFFFFFFFFFFFFFFF=NOT_SEND=From=~p~nTo=~p~nPacket=~p~n",[From, To, Packet])
+							?INFO_MSG("OFFLINE_MESSAGE_HOOK ::::> =NOT_SEND=From=~p~nTo=~p~nPacket=~p~n",[From, To, Packet])
 					end;
 				_ ->
 					ok
@@ -86,10 +86,16 @@ send_offline_message(From ,To ,Packet )->
  	HTTPService = ejabberd_config:get_local_option({http_server_service_client,Domain}),
 	HTTPTarget = string:concat(HTTPServer,HTTPService),
 	Msg = get_text_message_from_packet( Packet ),
-	{Service,Method,FN,TN,MSG} = {list_to_binary("service.uri.pet_user"),list_to_binary("pushMsgApn"),list_to_binary(FromUser),list_to_binary(ToUser),list_to_binary(Msg)},
+	{Service,Method,FN,TN,MSG} = {
+				list_to_binary("service.uri.pet_user"),
+				list_to_binary("pushMsgApn"),
+				list_to_binary(FromUser),
+				list_to_binary(ToUser),
+				list_to_binary(Msg)
+	},
 	ParamObj={obj,[ {"service",Service},{"method",Method},{"params",{obj,[{"fromname",FN},{"toname",TN},{"msg",MSG}]} } ]},
 	Form = "body="++rfc4627:encode(ParamObj),
-	?INFO_MSG("MMMMMMMMMMMMMMMMM===Form=~p~n",[Form]),
+	?INFO_MSG("=== MMMMMM ===Form=~p~n",[Form]),
 	case httpc:request(post,{ HTTPTarget ,[], ?HTTP_HEAD , Form },[],[] ) of   
         	{ok, {_,_,Body}} ->
  			case rfc4627:decode(Body) of
@@ -109,102 +115,53 @@ send_offline_message(From ,To ,Packet )->
      	end,
 	ok.
 
-%roster_in_subscription(Acc, User, Server, JID, SubscriptionType, Reason) -> bool()
-roster_in_subscription_handler(Acc, User, Server, JID, SubscriptionType, Reason) ->
-	?INFO_MSG("~n~p; Acc=~p ; User=~p~n Server=~p ; JID=~p ; SubscriptionType=~p ; Reason=~p~n ", [liangchuan_debug,Acc, User, Server, JID, SubscriptionType, Reason] ),
-	{jid,ToUser,Domain,_,_,_,_}=JID,
-	?INFO_MSG("XXXXXXXX===~p",[SubscriptionType]),
-	case SubscriptionType of subscribed -> 
-			sync_user(Domain,User,ToUser,SubscriptionType);
-		unsubscribed ->
-			sync_user(Domain,User,ToUser,SubscriptionType);
-		_ -> 
-			ok
-	end,
-	true.
-
-%% 好友同步
-sync_user(Domain,FromUser,ToUser,SType) ->
-	HTTPServer =  ejabberd_config:get_local_option({http_server,Domain}),
-	HTTPService = ejabberd_config:get_local_option({http_server_service_client,Domain}),
-	HTTPTarget = string:concat(HTTPServer,HTTPService),
-	{Service,Method,Channel} = {list_to_binary("service.uri.pet_user"),list_to_binary("addOrRemoveFriend"),list_to_binary("9")},
-	{AID,BID,ST} = {list_to_binary(FromUser),list_to_binary(ToUser),list_to_binary(atom_to_list(SType))},
-	%% 2013-10-22 : 新的请求协议如下，此处不必关心，success=true 即成功
-	%% INPUT {"SubscriptionType":"", "aId":"", "bId":""}
-	%% OUTPUT {"success":true,"entity":"OK" }
-	PostBody = {obj,[{"service",Service},{"method",Method},{"channel",Channel},{"params",{obj,[{"SubscriptionType",ST},{"aId",AID},{"bId",BID}]}}]},	
-	JsonParam = rfc4627:encode(PostBody),
-	ParamBody = "body="++JsonParam,
-	URL = HTTPServer++HTTPService++"?"++ParamBody,
-	?INFO_MSG("~p: ~p~n ",[liangchuan_debug,URL]),
-	Form = lists:concat([ParamBody]),
-	case httpc:request(post,{ HTTPTarget, [], ?HTTP_HEAD, Form },[],[] ) of   
-        	{ok, {_,_,Body}} ->
-			case rfc4627:decode(Body) of
-				{ok , Obj , _Re } ->
-					%% 请求发送出去以后，如果返回 success=false 那么记录一个异常日志就可以了，这个方法无论如何都要返回 ok	
-					case rfc4627:get_field(Obj,"success") of
-						{ok,false} ->	
-							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
-							?INFO_MSG("liangc-sync-user error: ~p~n",[binary_to_list(Entity)]);
-						_ ->
-							false
-					end;
-				_ -> 
-					false
-			end ;
-        	{error, Reason} ->
-			?INFO_MSG("[~ERROR~] cause ~p~n",[Reason])
-    	end,
-	?INFO_MSG("[--OKOKOKOK--] ~p was done.~n",[addOrRemoveFriend]),
-	ok.
-
-%roster_out_subscription(Acc, User, Server, JID, SubscriptionType, Reason) -> bool()
-%roster_out_subscription_handler(Acc, User, Server, JID, SubscriptionType, Reason) ->
-%	true.
-
 %user_send_packet(From, To, Packet) -> ok
 user_send_packet_handler(From, To, Packet) ->
-	?INFO_MSG("~n************** my_hookhandler user_send_packet_handler >>>>>>>>>>>>>>>~p~n ",[liangchuan_debug]),
-	?INFO_MSG("~n~pFrom=~p ; To=~p ; Packet=~p~n ", [liangchuan_debug,From, To, Packet] ),
-	?INFO_MSG("~n************** my_hookhandler user_send_packet_handler <<<<<<<<<<<<<<<~p~n ",[liangchuan_debug]),
+	?INFO_MSG("###### my_hookhandler ::::> user_send_packet_handler ~p",[liangchuan_debug]),
+	%% TODO 在每个包里，寻找群聊的包，并过滤出来
+	gen_server:cast(?MODULE,{group_chat_filter,From,To,Packet}),
 	ok.
 	
+
+
 %% ====================================================================
 %% Behavioural functions 
 %% ====================================================================
 -record(state, {}).
 
 init([]) ->
-	?INFO_MSG("INIT_START >>>>>>>>>>>>>>>>>>>>>>>> ~p",[liangchuan_debug]),  
+	?INFO_MSG("INIT_START >>>> ~p",[liangchuan_debug]),  
 	lists:foreach(
 	  fun(Host) ->
 		?INFO_MSG("#### _begin Host=~p~n",[Host]),
 		ejabberd_hooks:add(user_send_packet,Host,?MODULE, user_send_packet_handler ,80),
-	    ?INFO_MSG("#### user_send_packet Host=~p~n",[Host]),
-		ejabberd_hooks:add(roster_in_subscription,Host,?MODULE, roster_in_subscription_handler ,90),
-		?INFO_MSG("#### roster_in_subscription Host=~p~n",[Host]),
+	    	?INFO_MSG("#### user_send_packet Host=~p~n",[Host]),
+		%% ejabberd_hooks:add(roster_in_subscription,Host,?MODULE, roster_in_subscription_handler ,90),
+		%% ?INFO_MSG("#### roster_in_subscription Host=~p~n",[Host]),
 		ejabberd_hooks:add(offline_message_hook, Host, ?MODULE, offline_message_hook_handler, 45),
 		?INFO_MSG("#### offline_message_hook Host=~p~n",[Host])
 		%ejabberd_hooks:add(roster_out_subscription,Host,?MODULE, roster_out_subscription_handler ,90),
 		%?INFO_MSG("#### roster_out_subscription Host=~p~n",[Host])
   	  end, ?MYHOSTS),
-	?INFO_MSG("INIT_END <<<<<<<<<<<<<<<<<<<<<<<<< ~p",[liangchuan_debug]),
+	?INFO_MSG("INIT_END <<<< ~p",[liangchuan_debug]),
     {ok, #state{}}.
 
 handle_call(Request, From, State) ->
-    Reply = ok,
-    {reply, Reply, State}.
-handle_cast(Msg, State) ->
-    {noreply, State}.
-handle_info(Info, State) ->
-    {noreply, State}.
-terminate(Reason, State) ->
-    ok.
-code_change(OldVsn, State, Extra) ->
-    {ok, State}.
+	{reply, [], State}.
+handle_cast({group_chat_filter,From,#jid{server=Domain}=To,Packet}, State) ->
+	%% -record(jid, {user, server, resource, luser, lserver, lresource}).
+	case aa_group_chat:is_group_chat(To) of 
+		true ->
+			?DEBUG("###### send_group_chat_msg ###### From=~p ; Domain=~p",[From,Domain]),
+			aa_group_chat:route_group_msg(From,To,Packet);
+		false ->
+			skip
+	end,
+	{noreply, State}.
 
+handle_info(Info, State) -> {noreply, State}.
+terminate(Reason, State) -> ok.
+code_change(OldVsn, State, Extra) -> {ok, State}.
 %% ====================================================================
 %% Internal functions
 %% ====================================================================

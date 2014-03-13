@@ -323,8 +323,7 @@
 %	?STREAM_ERRORT("", Lang, Text)).
 
 
--record(jid, {user, server, resource,
-	      luser, lserver, lresource}).
+-record(jid, {user, server, resource, luser, lserver, lresource}).
 
 -record(iq, {id = "",
 	     type,

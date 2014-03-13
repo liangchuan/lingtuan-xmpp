@@ -242,31 +242,35 @@ get_sm_features(Acc, _From, _To, _Node, _Lang) ->
 
 
 store_packet(From, To, Packet) ->
-    Type = xml:get_tag_attr_s("type", Packet),
-    if
-	(Type /= "error") and (Type /= "groupchat") and
-	(Type /= "headline") ->
-	    case check_event_chatstates(From, To, Packet) of
+	Type = xml:get_tag_attr_s("type", Packet),
+	%% 140313 : add by liangc ; 忽视群聊发起者消息；
+	case aa_group_chat:is_group_chat(To) of 
 		true ->
-		    #jid{luser = LUser, lserver = LServer} = To,
-		    TimeStamp = now(),
-		    {xmlelement, _Name, _Attrs, Els} = Packet,
-		    Expire = find_x_expire(TimeStamp, Els),
-		    gen_mod:get_module_proc(To#jid.lserver, ?PROCNAME) !
-			#offline_msg{us = {LUser, LServer},
-				     timestamp = TimeStamp,
-				     expire = Expire,
-				     from = From,
-				     to = To,
-				     packet = Packet},
-		    stop;
+			stop;
 		_ ->
-		    ok
-	    end;
-	true ->
-	    ok
-    end.
-
+			if
+			    (Type /= "error") and (Type /= "groupchat") and (Type /= "headline") ->
+			        case check_event_chatstates(From, To, Packet) of
+			    		true ->
+			    		   	 #jid{luser = LUser, lserver = LServer} = To,
+			    		   	 TimeStamp = now(),
+			    		   	 {xmlelement, _Name, _Attrs, Els} = Packet,
+			    		   	 Expire = find_x_expire(TimeStamp, Els),
+			    		   	 gen_mod:get_module_proc(To#jid.lserver, ?PROCNAME) !
+			    		   	 	#offline_msg{us = {LUser, LServer},
+			    		   	     	timestamp = TimeStamp,
+			    		   	     	expire = Expire,
+			    		   	     	from = From,
+			    		   	     	to = To,
+			    		   	     	packet = Packet},
+			    		   	 stop;
+			    		_ ->
+			    	    		ok
+			        end;
+			    true ->
+			        ok
+			end
+	end.
 %% Check if the packet has any content about XEP-0022 or XEP-0085
 check_event_chatstates(From, To, Packet) ->
     {xmlelement, Name, Attrs, Els} = Packet,
