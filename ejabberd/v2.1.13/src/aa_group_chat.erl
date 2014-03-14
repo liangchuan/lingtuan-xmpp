@@ -38,22 +38,12 @@ route_group_msg(From,To,Packet)->
 init([]) ->
 	{ok,#state{}}.
 
-handle_call({route_group_msg,From,#jid{user=GroupId}=To,Packet}, _From, State) ->
+handle_call({route_group_msg,#jid{server=Domain}=From,#jid{user=GroupId}=To,Packet}, _From, State) ->
 	%% TODO CALL WEBAPP , GET ROSTER OF GROUP;
 	%% jid in roster list
 	%% -record(jid, {user, server, resource, luser, lserver, lresource}).
-	Roster = [
-		#jid{user="g0",server="test.com",luser="g0",lserver="test.com",resource=[],lresource=[]},
-		#jid{user="g1",server="test.com",luser="g1",lserver="test.com",resource=[],lresource=[]},
-		#jid{user="g2",server="test.com",luser="g2",lserver="test.com",resource=[],lresource=[]},
-		#jid{user="g3",server="test.com",luser="g3",lserver="test.com",resource=[],lresource=[]},
-		#jid{user="g4",server="test.com",luser="g4",lserver="test.com",resource=[],lresource=[]},
-		#jid{user="g5",server="test.com",luser="g5",lserver="test.com",resource=[],lresource=[]},
-		#jid{user="g6",server="test.com",luser="g6",lserver="test.com",resource=[],lresource=[]},
-		#jid{user="g7",server="test.com",luser="g7",lserver="test.com",resource=[],lresource=[]},
-		#jid{user="g8",server="test.com",luser="g8",lserver="test.com",resource=[],lresource=[]},
-		#jid{user="g9",server="test.com",luser="g9",lserver="test.com",resource=[],lresource=[]}
-	],
+	UserList = ["g0","g1","g2","g3","g4","g5"],
+	Roster = lists:map(fun(User)-> #jid{user="g0",server=Domain,luser="g0",lserver=Domain,resource=[],lresource=[]} end,UserList),
 	?DEBUG("###### route_group_msg 002 :::> GroupId=~p ; Roster=~p",[GroupId,Roster]),
 	lists:foreach(fun(Target)-> route_msg(From,Target,Packet,GroupId) end,Roster),	
 	{reply,[],State}.
