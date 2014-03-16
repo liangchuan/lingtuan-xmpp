@@ -6,6 +6,8 @@
 -behaviour(gen_server).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
+-define(HTTP_HEAD,"application/x-www-form-urlencoded").
+
 %% ====================================================================
 %% API functions
 %% ====================================================================
@@ -39,13 +41,17 @@ init([]) ->
 	{ok,#state{}}.
 
 handle_call({route_group_msg,#jid{server=Domain}=From,#jid{user=GroupId}=To,Packet}, _From, State) ->
-	%% TODO CALL WEBAPP , GET ROSTER OF GROUP;
-	%% jid in roster list
-	%% -record(jid, {user, server, resource, luser, lserver, lresource}).
-	UserList = ["g0","g1","g2","g3","g4","g5"],
-	Roster = lists:map(fun(User)-> #jid{user="g0",server=Domain,luser="g0",lserver=Domain,resource=[],lresource=[]} end,UserList),
-	?DEBUG("###### route_group_msg 002 :::> GroupId=~p ; Roster=~p",[GroupId,Roster]),
-	lists:foreach(fun(Target)-> route_msg(From,Target,Packet,GroupId) end,Roster),	
+	case get_user_list_by_group_id(Domain,GroupId) of 
+		{ok,UserList} ->
+			%% -record(jid, {user, server, resource, luser, lserver, lresource}).
+			Roster = lists:map(fun(User)-> 
+				#jid{user=User,server=Domain,luser=User,lserver=Domain,resource=[],lresource=[]} 
+			end,UserList),
+			?DEBUG("###### route_group_msg 002 :::> GroupId=~p ; Roster=~p",[GroupId,Roster]),
+			lists:foreach(fun(Target)-> route_msg(From,Target,Packet,GroupId) end,Roster);
+		Err ->
+			error
+	end,	
 	{reply,[],State}.
 
 handle_cast(stop, State) ->
@@ -62,6 +68,39 @@ code_change(OldVsn, State, Extra) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
+get_user_list_by_group_id(Domain,GroupId)->
+	?DEBUG("###### get_user_list_by_group_id :::> GroupId=~p",[GroupId]),
+ 	HTTPTarget =  ejabberd_config:get_local_option({http_server,Domain}),
+	{Service,Method,GID,SN} = {
+			list_to_binary("service.groupchat"),
+			list_to_binary("getUserList"),
+			list_to_binary(GroupId),
+			list_to_binary(os:cmd("uuidgen")--"\n")
+	},
+	ParamObj={obj,[ {"sn",SN},{"service",Service},{"method",Method},{"params",{obj,[{"groupId",GID}]} } ]},
+	Form = "body="++rfc4627:encode(ParamObj),
+	?DEBUG("###### get_user_list_by_group_id :::> HTTP_TARGET=~p ; request=~p",[HTTPTarget,Form]),
+	case httpc:request(post,{ HTTPTarget ,[], ?HTTP_HEAD , Form },[],[] ) of   
+        	{ok, {_,_,Body}} ->
+			?DEBUG("###### get_user_list_by_group_id :::> response=~p",[Body]),
+ 			case rfc4627:decode(Body) of
+ 				{ok,Obj,_Re} -> 
+					case rfc4627:get_field(Obj,"success") of
+						{ok,true} ->
+							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
+							{ok,binary_to_list(Entity)};
+						_ ->
+							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
+							{fail,Entity}
+					end;
+ 				Error -> 
+					{error,Error}
+ 			end ;
+        	{error, Reason} ->
+ 			?INFO_MSG("[~ERROR~] cause ~p~n",[Reason]),
+			{error,Reason}
+     	end.
+
 route_msg(From,#jid{user=User,server=Domain}=To,Packet,GroupId) ->
 	{X,E,Attr,Body} = Packet,
 	?DEBUG("##### route_group_msg_003 param :::> {User,Domain,GroupId}=~p",[{User,Domain,GroupId}]),

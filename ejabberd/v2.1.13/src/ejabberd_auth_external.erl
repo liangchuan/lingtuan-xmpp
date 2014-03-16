@@ -173,15 +173,15 @@ check_password_extauth(User, Server, Password) ->
 		_->
 			HTTPTarget =  ejabberd_config:get_local_option({http_server,Server}),
 			%% INPUT ::> {"sn":"123456789","service":"service.sso","method":"check_token","params":{"token":"987654321"}}
-			%% OUTPUT {"success":true,"entity":{}}
+			%% OUTPUT {"success":true,"entity":"xxx"}
 			{SN,TOKEN} = {list_to_binary(os:cmd("uuidgen")--"\n"),list_to_binary(Password)},
 			{Service,Method} = {list_to_binary("service.sso"),list_to_binary("check_token")},
 			PostBody = {obj,[{"service",Service},{"method",Method},{"sn",SN},{"params",{obj,[{"token",TOKEN}]}}]},	
 			Form = "body="++rfc4627:encode(PostBody),
-			?INFO_MSG("###### liangc-auth HTTP_TARGET=~p ; FORM=~p",[HTTPTarget,Form]),
+			?INFO_MSG("###### liangc-auth HTTP_TARGET=~p ; request=~p",[HTTPTarget,Form]),
 		    	case httpc:request(post,{HTTPTarget,[],?HTTPHead, Form},[],[]) of   
 		        	{ok, {_,_,Body}}-> 
-					?INFO_MSG("##### liangc-auth return: ~p~n",[Body]),
+					?INFO_MSG("##### liangc-auth response: ~p~n",[Body]),
 					case rfc4627:decode(Body) of 
 						{ok,Obj,_Re} -> 
 							case rfc4627:get_field(Obj,"success") of 
