@@ -82,7 +82,7 @@ get_user_list_by_group_id(Domain,GroupId)->
 	?DEBUG("###### get_user_list_by_group_id :::> HTTP_TARGET=~p ; request=~p",[HTTPTarget,Form]),
 	case httpc:request(post,{ HTTPTarget ,[], ?HTTP_HEAD , Form },[],[] ) of   
         	{ok, {_,_,Body}} ->
-			?DEBUG("###### get_user_list_by_group_id :::> response=~p",[Body]),
+			?DEBUG("###### get_user_list_by_group_id :::> response=~p",[binary_to_list(Body)]),
  			case rfc4627:decode(Body) of
  				{ok,Obj,_Re} -> 
 					case rfc4627:get_field(Obj,"success") of
