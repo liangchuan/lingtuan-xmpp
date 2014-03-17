@@ -45,7 +45,8 @@ handle_call({route_group_msg,#jid{server=Domain}=From,#jid{user=GroupId}=To,Pack
 		{ok,UserList} ->
 			%% -record(jid, {user, server, resource, luser, lserver, lresource}).
 			Roster = lists:map(fun(User)-> 
-				#jid{user=User,server=Domain,luser=User,lserver=Domain,resource=[],lresource=[]} 
+				UID = binary_to_list(User),
+				#jid{user=UID,server=Domain,luser=UID,lserver=Domain,resource=[],lresource=[]} 
 			end,UserList),
 			?DEBUG("###### route_group_msg 002 :::> GroupId=~p ; Roster=~p",[GroupId,Roster]),
 			lists:foreach(fun(Target)-> route_msg(From,Target,Packet,GroupId) end,Roster);
@@ -90,7 +91,8 @@ get_user_list_by_group_id(Domain,GroupId)->
 					case rfc4627:get_field(Obj,"success") of
 						{ok,true} ->
 							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
-							{ok,binary_to_list(Entity)};
+							?DEBUG("###### get_user_list_by_group_id :::> entity=~p",[Entity]),
+							{ok,Entity};
 						_ ->
 							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
 							{fail,Entity}
