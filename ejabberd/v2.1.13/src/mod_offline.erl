@@ -246,6 +246,7 @@ store_packet(From, To, Packet) ->
 	%% 140313 : add by liangc ; 忽视群聊发起者消息；
 	case aa_group_chat:is_group_chat(To) of 
 		true ->
+			?DEBUG("##### group_chat_offline_msg skip ::::> ~p",[To]),
 			stop;
 		_ ->
 			if
