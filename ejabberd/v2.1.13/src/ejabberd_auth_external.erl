@@ -181,8 +181,10 @@ check_password_extauth(User, Server, Password) ->
 			?INFO_MSG("###### liangc-auth HTTP_TARGET=~p ; request=~p",[HTTPTarget,Form]),
 		    	case httpc:request(post,{HTTPTarget,[],?HTTPHead, Form},[],[]) of   
 		        	{ok, {_,_,Body}}-> 
-					?INFO_MSG("##### liangc-auth response: ~p~n",[binary_to_list(Body)]),
-					case rfc4627:decode(Body) of 
+					DBody = rfc4627:decode(Body),
+					{_,Log,_} = DBody,
+					?DEBUG("##### liangc-auth response: ~p~n",[rfc4627:encode(Log)]),
+					case DBody of 
 						{ok,Obj,_Re} -> 
 							case rfc4627:get_field(Obj,"success") of 
 								{ok,true} -> 
