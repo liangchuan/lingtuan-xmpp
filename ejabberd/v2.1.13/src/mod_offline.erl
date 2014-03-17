@@ -248,7 +248,8 @@ store_packet(From, To, Packet) ->
 		true ->
 			?DEBUG("##### group_chat_offline_msg skip ::::> ~p",[To]),
 			stop;
-		_ ->
+		Other->
+			?DEBUG("##### group_chat_offline_msg To=~p::::> Other=~p",[To,Other]),
 			if
 			    (Type /= "error") and (Type /= "groupchat") and (Type /= "headline") ->
 			        case check_event_chatstates(From, To, Packet) of

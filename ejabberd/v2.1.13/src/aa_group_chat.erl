@@ -123,10 +123,12 @@ route_msg(From,#jid{user=User,server=Domain}=To,Packet,GroupId) ->
 
 is_group_chat(#jid{server=Domain}=To)->
 	DomainTokens = string:tokens(Domain,"."),
-	case length(DomainTokens) > 2 of 
+	Rtn = case length(DomainTokens) > 2 of 
 		true ->
-			[G|L] = DomainTokens,
+			[G|_] = DomainTokens,
 			G=:="group";
 		_ ->
 			false
-	end.
+	end,
+	?DEBUG("##### is_group_chat ::::>To~p ; Rtn=~p",[To,Rtn]),
+	Rtn.
