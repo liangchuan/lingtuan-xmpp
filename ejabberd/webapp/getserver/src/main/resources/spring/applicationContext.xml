@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd 
+	http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context-3.0.xsd"
+	default-lazy-init="false" default-autowire="byName">
+	<description>Spring</description>
+
+	<bean id="locations" class="java.util.ArrayList" >
+  		<constructor-arg>
+		   	<list>
+		   		<value>classpath:properties/zoo.properties</value>
+		   		<value>classpath:properties/node.properties</value>
+			</list>
+	  	</constructor-arg>
+  	</bean>
+  	
+  	<bean id="config" class="org.springframework.beans.factory.config.PropertiesFactoryBean" lazy-init="false">
+  		<property name="locations" ref="locations" />
+  	</bean>
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
+		<property name="ignoreResourceNotFound" value="true" />
+		<property name="ignoreUnresolvablePlaceholders" value="true" />
+  		<property name="locations" ref="locations" />
+	</bean>
+	<!-- 配置管理服务器地址 -->
+    <bean id="zooServer" class="java.lang.String" >
+    	<constructor-arg index="0" value="${zoo.server}" />
+    </bean>
+    
+    <bean id="nodeDefHost" class="java.lang.String" >
+    	<constructor-arg index="0" value="${node.def.host}" />
+    </bean>
+    
+    <bean id="nodeServiceUrl" class="java.lang.String" >
+    	<constructor-arg index="0" value="${node.service.url}" />
+    </bean>
+
+    
+    <bean id="nodeCookie" class="java.lang.String" >
+    	<constructor-arg index="0" value="${node.cookie}" />
+    </bean>
+    <bean id="nodePing" class="java.lang.String" >
+    	<constructor-arg index="0" value="${node.ping}" />
+    </bean>
+    <bean id="nodeName" class="java.lang.String" >
+    	<constructor-arg index="0" value="${node.name}" />
+    </bean>
+    <bean id="nodeBox" class="java.lang.String" >
+    	<constructor-arg index="0" value="${node.box}" />
+    </bean>
+    
+    
+    
+	<bean class="org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor" />
+
+	<context:component-scan base-package="com.momoplan.pet.framework.manager"></context:component-scan>
+
+</beans>

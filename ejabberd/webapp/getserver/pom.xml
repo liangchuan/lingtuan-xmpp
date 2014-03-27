@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.momoplan.pet</groupId>
+		<artifactId>pet-parent</artifactId>
+		<version>1.0.0-SNAPSHOTS</version>
+	</parent>
+
+	<artifactId>getserver</artifactId>
+	<packaging>war</packaging>
+	<name>getserver</name>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.1.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpmime</artifactId>
+			<version>4.1.1</version>
+		</dependency>
+		<!--
+		<dependency>
+		  	<groupId>com.momoplan.pet</groupId>
+		  	<artifactId>pet-commons</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		-->
+	</dependencies>
+
+	<build>
+		<finalName>getserver</finalName>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.4</version>
+				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+					<encoding>UTF-8</encoding>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>2.5</version>
+				<configuration>
+					<encoding>UTF-8</encoding>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>tomcat-maven-plugin</artifactId>
+				<version>1.1</version>
+				<configuration>
+					<url>${tomcat.manager.url}</url>
+					<username>tomcat</username>
+					<password>explink</password>
+					<path>/getserver</path>
+					<update>true</update>
+				</configuration>
+			</plugin>
+
+		</plugins>
+		<sourceDirectory>src/main/java</sourceDirectory>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+	</build>
+	
+	<profiles>
+		<profile>
+			<id>test</id>
+			<properties>
+    			<node.cookie>CSNTPPVBNWORKOVPEKTY</node.cookie>
+    			<node.ping>ejabberd@localhost</node.ping>
+    			<node.name>log@localhost</node.name>
+    			<node.box>logbox</node.box>
+    			
+    			<zoo.server>127.0.0.1:2181</zoo.server>
+    			<node.def.host>115.29.236.163:5222</node.def.host>
+    			<node.service.url>http://127.0.0.1:5380/?body={%22method%22:%22process_counter%22}</node.service.url>
+			</properties>
+		</profile>
+
+		<profile>
+			<id>release</id>
+			<properties>
+				<node.cookie>SVGBVVQVDQFHXBBCDSAN</node.cookie>
+    			<node.ping>ejabberd@s1</node.ping>
+    			<node.name>log@s3</node.name>
+    			<node.box>logbox</node.box>
+    			
+    			<node.def.host>221.122.114.212:5222</node.def.host>
+    			<node.service.url>http://192.168.99.50:5380/?body={%22method%22:%22process_counter%22}</node.service.url>
+			</properties>
+		</profile>
+	</profiles>
+    
+
+</project>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration PUBLIC "-//LOGGER" "log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+	<!-- ============================== -->
+	<!-- Appenders -->
+	<!-- ============================== -->
+
+	<!-- Provides Console Logging -->
+	<appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
+		<param name="Target" value="System.out" />
+
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{dd-MM-yyyy HH:mm:ss,SSS z} %-5p [%t] [%c@%L] %m%n" />
+		</layout>
+	</appender>
+
+	<!--  Provides File Logging  -->
+	<appender name="FILE" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="File" value="./logs/getserver.log" />
+		<param name="Append" value="true" />
+		<param name="DatePattern" value="'.'yyyy-MM-dd" />
+
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{dd-MM-yyyy HH:mm:ss,SSS z} %-5p [%t] [%c@%L] %m%n" />
+		</layout>
+	</appender>
+
+	<!--  Provides File Logging  -->
+	<appender name="MSG_FILE" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="File" value="./logs/ejabberd_message.log" />
+		<param name="Append" value="true" />
+		<param name="DatePattern" value="'.'yyyy-MM-dd" />
+
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss,SSS z} -- %m%n" />
+		</layout>
+	</appender>
+
+	<!-- Turn off form validation messages -->
+	<logger name="org.apache.commons.validator.ValidatorResources">
+		<level value="OFF" />
+	</logger>
+
+	<logger name="org.apache.zookeeper">
+		<level value="INFO" />
+	</logger>
+
+    <logger name="com.momoplan.pet.framework.manager.controller">
+        <level value="INFO"/>
+        <appender-ref ref="FILE" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+    
+    <logger name="com.momoplan.pet.framework.manager.node">
+        <level value="DEBUG"/>
+        <appender-ref ref="MSG_FILE" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+    
+	<!-- ======================= -->
+	<!-- Setup the Root logger -->
+	<!-- ======================= -->
+	<root>
+		<level value="INFO" />
+	</root>
+	
+</log4j:configuration>
