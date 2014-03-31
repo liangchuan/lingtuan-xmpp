@@ -26,6 +26,7 @@ user_send_packet_handler(From, To, Packet) ->
 	?INFO_MSG("###### my_hookhandler ::::> user_send_packet_handler ~p",[liangchuan_debug]),
 	%% TODO 在每个包里，寻找群聊的包，并过滤出来
 	gen_server:cast(?MODULE,{group_chat_filter,From,To,Packet}),
+	gen_server:cast(aa_log,{store,Packet}),
 	ok.
 	
 
