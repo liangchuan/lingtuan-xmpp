@@ -53,26 +53,31 @@ feach_message([],List) ->
 
 
 get_text_message_form_packet_result( Body )->
-	{xmlelement,"body",_,[{xmlcdata,MessageBody}]} = Body,
-	ResultMessage = binary_to_list(MessageBody),
-	ResultMessage.
+       {xmlelement,"body",_,List} = Body, 
+       Res = lists:map(fun({_,V})-> binary_to_list(V) end,List), 
+       ResultMessage = lists:merge(Res), 
+       ResultMessage.
 
 log(Packet,N) ->
 	try
-		{xmlelement,"message",Attr,_} = Packet,
-		D = dict:from_list(Attr),
-		ID      = case dict:is_key("id",D) of true-> dict:fetch("id",D); false-> "" end,
-		From    = case dict:is_key("from",D) of true-> dict:fetch("from",D); false-> "" end,
-		To      = case dict:is_key("to",D) of true-> dict:fetch("to",D); false-> "" end,
-		MsgType = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); false-> "" end,
-		Msg     = erlang:list_to_binary(get_text_message_from_packet(Packet)),
-		Message = {ID,From,To,MsgType,Msg},
-		case net_adm:ping(N) of
-			pang ->
-				?INFO_MSG("write_log ::::> ~p",[Message]),
-				Message;
-			pong ->
-				{logbox,N}!Message
+		case Packet of 
+			{xmlelement,"message",Attr,_} -> 
+				D = dict:from_list(Attr),
+				ID      = case dict:is_key("id",D) of true-> dict:fetch("id",D); false-> "" end,
+				From    = case dict:is_key("from",D) of true-> dict:fetch("from",D); false-> "" end,
+				To      = case dict:is_key("to",D) of true-> dict:fetch("to",D); false-> "" end,
+				MsgType = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); false-> "" end,
+				Msg     = erlang:list_to_binary(get_text_message_from_packet(Packet)),
+				Message = {ID,From,To,MsgType,Msg},
+				case net_adm:ping(N) of
+					pang ->
+						?INFO_MSG("write_log ::::> ~p",[Message]),
+						Message;
+					pong ->
+						{logbox,N}!Message
+				end;
+			_ ->
+				skip
 		end
 	catch
 		E:I ->

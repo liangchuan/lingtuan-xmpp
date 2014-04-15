@@ -241,7 +241,12 @@ get_sm_features(Acc, _From, _To, _Node, _Lang) ->
     Acc.
 
 
-store_packet(From, To, Packet) ->
+store_packet(From, {jid,_,Domain,_,_,_,_}=To, Packet) ->
+	case ejabberd_config:get_local_option({ack_from ,Domain}) of
+		true -> stop; 
+		_ -> store_packet(old,From,To,Packet)  
+	end.
+store_packet(old,From, To, Packet) ->
 	Type = xml:get_tag_attr_s("type", Packet),
 	%% 140313 : add by liangc ; 忽视群聊发起者消息；
 	case aa_group_chat:is_group_chat(To) of 
