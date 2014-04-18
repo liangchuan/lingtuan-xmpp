@@ -76,12 +76,17 @@ handle_call({sync_packet,K,From,To,Packet}, _F, #state{ecache_node=Node,ecache_m
         aa_offline_mod:offline_message_hook_handler(From,To,RPacket),
         {reply, R, State}.
 
-handle_cast({group_chat_filter,From,#jid{server=Domain}=To,Packet}, State) ->
+handle_cast({group_chat_filter,From,To,Packet}, State) ->
+	filter_cast({From,To,Packet,true}, State);
+handle_cast({group_chat_filter,From,To,Packet,SACK}, State) ->
+	filter_cast({From,To,Packet,SACK}, State).
+
+filter_cast({From,#jid{server=Domain}=To,Packet,SACK}, State) ->
 	%% -record(jid, {user, server, resource, luser, lserver, lresource}).
 	[_,E|_] = tuple_to_list(Packet),
 	case E of 
 		"message" -> 
-			server_ack(From,To,Packet,State),
+			case SACK of true -> server_ack(From,To,Packet,State); _-> skip end,
 			case aa_group_chat:is_group_chat(To) of 
 				true ->
 					?DEBUG("###### send_group_chat_msg ###### From=~p ; Domain=~p",[From,Domain]),
