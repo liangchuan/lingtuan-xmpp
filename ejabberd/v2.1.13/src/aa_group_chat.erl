@@ -124,7 +124,7 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 			case ejabberd_router:route(From, To, RPacket) of
 				ok ->
 					?DEBUG("###### route_group_msg 003 OK :::> {From,To,RPacket}=~p",[{From,To,RPacket}]),
-					aa_hookhandler:user_send_packet_handler(From,To,Packet),
+					gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
 					{ok,ok};
 				Err ->
 					?DEBUG("###### route_group_msg 003 ERR=~p :::> {From,To,RPacket}=~p",[Err,{From,To,RPacket}]),
