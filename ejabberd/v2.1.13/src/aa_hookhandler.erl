@@ -107,7 +107,8 @@ conn_ecache_node() ->
 		{error,E,I}
 	end.
 
-server_ack(#jid{user=FU,server=FD}=From,#jid{server=Domain}=To,Packet,State) ->
+server_ack(#jid{user=FU,server=FD}=From,To,Packet,State) ->
+	Domain = FD,
         {_,"message",Attr,_} = Packet,
         D = dict:from_list(Attr),
         T = dict:fetch("type", D),
