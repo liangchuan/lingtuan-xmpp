@@ -78,6 +78,7 @@ handle_call({sync_packet,K,From,To,Packet}, _F, #state{ecache_node=Node,ecache_m
 
 handle_cast({group_chat_filter,From,#jid{server=Domain}=To,Packet}, State) ->
 	%% -record(jid, {user, server, resource, luser, lserver, lresource}).
+	server_ack(From,To,Packet,State),
 	case aa_group_chat:is_group_chat(To) of 
 		true ->
 			?DEBUG("###### send_group_chat_msg ###### From=~p ; Domain=~p",[From,Domain]),
@@ -106,6 +107,45 @@ conn_ecache_node() ->
 		{error,E,I}
 	end.
 
+server_ack(#jid{user=FU,server=FD}=From,#jid{server=Domain}=To,Packet,State) ->
+        {_,"message",Attr,_} = Packet,
+        D = dict:from_list(Attr),
+        T = dict:fetch("type", D),
+        MT = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); _-> "" end,
+        SRC_ID_STR = case dict:is_key("id", D) of true -> dict:fetch("id", D); _ -> "" end,
+        ACK_FROM = case ejabberd_config:get_local_option({ack_from ,Domain}) of true -> true; _ -> false end,
+        if ACK_FROM and ( ( MT=:="normalchat" ) or ( MT=:="groupchat") ) ->
+                case dict:is_key("from", D) of
+                        true ->
+                                Attributes = [
+                                        {"id",os:cmd("uuidgen")--"\n"},
+                                        {"to",dict:fetch("from", D)},
+                                        {"from","messageack@"++Domain},
+                                        {"type","normal"},
+                                        {"msgtype",""},
+                                        {"action","ack"}
+                                ],
+                                Child = [{xmlelement, "body", [], [
+                                                {xmlcdata, list_to_binary("{'src_id':'"++SRC_ID_STR++"','received':'true'}")}
+                                ]}],
+                                Answer = {xmlelement, "message", Attributes , Child},
+                                FF = jlib:string_to_jid(xml:get_tag_attr_s("from", Answer)),
+                                TT = jlib:string_to_jid(xml:get_tag_attr_s("to", Answer)),
+                                ?DEBUG("Answer ::::> FF=~p ; TT=~p ; P=~p ", [FF,TT,Answer] ),
+                                case catch ejabberd_router:route(FF, TT, Answer) of
+                                        ok -> ?DEBUG("Answer ::::> ~p ", [ok] );
+                                        _ERROR -> ?DEBUG("Answer ::::> error=~p ", [_ERROR] )
+                                end,
+                                answer;
+                        _ ->
+                                ?DEBUG("~p", [skip_01] ),
+                                skip
+                end;
+          true ->
+                ok
+        end.
+
+
 message_handler(#jid{user=FU,server=FD}=From,#jid{server=Domain}=To,Packet,State) ->
 	%% TODO 处理 message 消息，进来的都是 message
 	{_,"message",Attr,_} = Packet, 
@@ -117,38 +157,6 @@ message_handler(#jid{user=FU,server=FD}=From,#jid{server=Domain}=To,Packet,State
 	?DEBUG("SRC_ID_STR=~p", [SRC_ID_STR] ),
 	ACK_FROM = case ejabberd_config:get_local_option({ack_from ,Domain}) of true -> true; _ -> false end,
 	?DEBUG("ack_from=~p ; Domain=~p ; T=~p ; MT=~p",[ACK_FROM,Domain,T,MT]),
-	%% 回弹 normalchat 类型的消息
-	if ACK_FROM , MT=:="normalchat" ->
-		case dict:is_key("from", D) of 
-			true -> 
-				Attributes = [ 
-					{"id",os:cmd("uuidgen")--"\n"}, 
-					{"to",dict:fetch("from", D)}, 
-					{"from","messageack@"++Domain}, 
-					{"type","normal"}, 
-					{"msgtype",""}, 
-					{"action","ack"} 
-				], 
-				Child = [{xmlelement, "body", [], [ 
-						{xmlcdata, list_to_binary("{'src_id':'"++SRC_ID_STR++"','received':'true'}")} 
-				]}], 
-				Answer = {xmlelement, "message", Attributes , Child}, 
-				FF = jlib:string_to_jid(xml:get_tag_attr_s("from", Answer)), 
-				TT = jlib:string_to_jid(xml:get_tag_attr_s("to", Answer)), 
-				?DEBUG("Answer ::::> FF=~p ; TT=~p ; P=~p ", [FF,TT,Answer] ), 
-				case catch ejabberd_router:route(FF, TT, Answer) of 
-					ok -> ?DEBUG("Answer ::::> ~p ", [ok] ); 
-					_ERROR -> ?DEBUG("Answer ::::> error=~p ", [_ERROR] ) 
-				end, 
-				answer; 
-			_ -> 
-				?DEBUG("~p", [skip_01] ), 
-				skip 
-		end; 
-	  true ->
-		ok
-	end,
-
 	SYNCID = SRC_ID_STR++"@"++Domain, 
 	if ACK_FROM,MT=/=[],MT=/="msgStatus",FU=/="messageack" -> 
 		   ?DEBUG("==> SYNC_RES start => ID=~p",[SRC_ID_STR]), 
