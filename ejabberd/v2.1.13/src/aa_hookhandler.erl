@@ -166,8 +166,9 @@ server_ack(#jid{user=FU,server=FD}=From,To,Packet,State) ->
         end.
 
 
-message_handler(#jid{user=FU,server=FD}=From,#jid{server=Domain}=To,Packet,State) ->
+message_handler(#jid{user=FU,server=FD}=From,To,Packet,State) ->
 	%% TODO 处理 message 消息，进来的都是 message
+	Domain = FD,
 	{_,"message",Attr,_} = Packet, 
 	?DEBUG("Attr=~p", [Attr] ), 
 	D = dict:from_list(Attr), 
