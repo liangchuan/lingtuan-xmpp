@@ -78,14 +78,28 @@ handle_call({sync_packet,K,From,To,Packet}, _F, #state{ecache_node=Node,ecache_m
 
 handle_cast({group_chat_filter,From,#jid{server=Domain}=To,Packet}, State) ->
 	%% -record(jid, {user, server, resource, luser, lserver, lresource}).
-	server_ack(From,To,Packet,State),
-	case aa_group_chat:is_group_chat(To) of 
-		true ->
-			?DEBUG("###### send_group_chat_msg ###### From=~p ; Domain=~p",[From,Domain]),
-			aa_group_chat:route_group_msg(From,To,Packet);
-		false ->
-			[_,E|_] = tuple_to_list(Packet),
-			case E of "message" -> message_handler(From,To,Packet,State); _-> skip end
+	[_,E|_] = tuple_to_list(Packet),
+	case E of 
+		"message" -> 
+			server_ack(From,To,Packet,State),
+			case aa_group_chat:is_group_chat(To) of 
+				true ->
+					?DEBUG("###### send_group_chat_msg ###### From=~p ; Domain=~p",[From,Domain]),
+        				{_,"message",Attr,_} = Packet,
+        				D = dict:from_list(Attr),
+        				MT = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); _-> "" end,
+					case MT=:="msgStatus" of
+						true ->
+							?DEBUG("###### ack_group_chat_msg ###### Packet=~p",[Packet]),
+							message_handler(From,To,Packet,State);
+						_->
+							aa_group_chat:route_group_msg(From,To,Packet) 
+					end;
+				false ->
+					message_handler(From,To,Packet,State)
+			end;
+		_ ->
+			skip
 	end,
 	{noreply, State}.
 

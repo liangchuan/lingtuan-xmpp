@@ -110,7 +110,14 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 		true->
 			{X,E,Attr,Body} = Packet,
 			?DEBUG("##### route_group_msg_003 param :::> {User,Domain,GroupId}=~p",[{User,Domain,GroupId}]),
-			RAttr0 = lists:map(fun({K,V})-> case K of "to" -> {K,User++"@"++Domain}; "msgtype" -> {K,"groupchat"};	_-> {K,V} end end,Attr),
+			RAttr0 = lists:map(fun({K,V})-> 
+				case K of 
+					"id" -> {K,os:cmd("uuidgen")--"\n"};
+					"to" -> {K,User++"@"++Domain};
+					"msgtype" -> {K,"groupchat"};	
+					_-> {K,V} 
+				end 
+			end,Attr),
 			RAttr1 = lists:append(RAttr0,[{"groupid",GroupId}]),
 			RPacket = {X,E,RAttr1,Body},
 			?DEBUG("###### route_group_msg 003 input :::> {From,To,RPacket}=~p",[{From,To,RPacket}]),
