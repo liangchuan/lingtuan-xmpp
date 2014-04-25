@@ -19,7 +19,8 @@ init([]) ->
 	AALog ={ aa_log,{aa_log, start_link, []}, permanent, brutal_kill, worker, [aa_log] },
 	AAOfflineMod ={ aa_offline_mod,{aa_offline_mod, start_link, []}, permanent, brutal_kill, worker, [aa_offline_mod] },
 	AAGroupChatSup ={aa_group_chat_sup,{aa_group_chat_sup, start_link,[]},temporary,brutal_kill, supervisor, [aa_group_chat_sup] },
-    	{ok, {{one_for_one, 5, 10}, [AAHookhandler,AAGroupChatSup,AALog,AAOfflineMod]}}.
+	AABlacklist ={ aa_blacklist,{aa_blacklist, start_link, []}, permanent, brutal_kill, worker, [aa_blacklist] },
+    	{ok, {{one_for_one, 5, 10}, [AAHookhandler,AAGroupChatSup,AALog,AAOfflineMod,AABlacklist]}}.
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================

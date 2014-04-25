@@ -39,9 +39,17 @@ handle_http(Req) ->
 	gen_server:call(?MODULE,{handle_http,Req}).
 
 http_response({S,Req}) ->
-	Res = {obj,[{success,S#success.success},{entity,S#success.entity}]},
-	J = rfc4627:encode(Res),
-	Req:ok([{"Content-Type", "text/json"}], "~s", [J]).
+	try
+		Res = {obj,[{success,S#success.success},{entity,S#success.entity}]},
+		?DEBUG("Res_obj=~p",[Res]),
+		J = rfc4627:encode(Res),
+		?DEBUG("Res_json=~p",[J]),
+		Req:ok([{"Content-Type", "text/json"}], "~s", [J]) 
+	catch
+		_:_->
+			Err = erlang:get_stacktrace(),
+			Req:ok([{"Content-Type", "text/json"}], "~s", ["{\"success\":false,\"entity\":\""++Err++"\"}"]) 
+	end.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -88,13 +96,51 @@ handle_call({handle_http,Req}, _From, State) ->
 		end,
 		[{"body",Body}] = Args,
 		{ok,Obj,_Re} = rfc4627:decode(Body),
-		%%{ok,T} = rfc4627:get_field(Obj, "token"),
+		?INFO_MSG("http ::> body=~p",[Body]),	 
 		{ok,M} = rfc4627:get_field(Obj, "method"),
-
+		S = case rfc4627:get_field(Obj, "service") of {ok,SS} -> binary_to_list(SS); _-> none end,
 		case binary_to_list(M) of 
 			"process_counter" ->
 				Counter = aa_process_counter:process_counter(),
 				http_response({#success{success=true,entity=Counter},Req});
+			"add" when S =:= "blacklist" ->
+				?INFO_MSG("http blacklist.add ::> ~p",[Args]),
+				try
+					{ok,P} = rfc4627:get_field(Obj, "params"),
+					{ok,From} = rfc4627:get_field(P, "from"),
+					{ok,To} = rfc4627:get_field(P, "to"),
+					aa_blacklist:add(From,To),
+					http_response({#success{success=true,entity=list_to_binary("ok")},Req}) 
+				catch 
+					_:_->
+						Err = erlang:get_stacktrace(),
+						http_response({#success{success=false,entity=list_to_binary(Err)},Req}) 
+				end;
+			"remove" when S =:= "blacklist" ->
+				?INFO_MSG("http blacklist.remove ::> ~p",[Args]),
+				try
+					{ok,P} = rfc4627:get_field(Obj, "params"),
+					{ok,From} = rfc4627:get_field(P, "from"),
+					{ok,To} = rfc4627:get_field(P, "to"),
+					aa_blacklist:remove(From,To),
+					http_response({#success{success=true,entity=list_to_binary("ok")},Req}) 
+				catch 
+					_:_->
+						Err = erlang:get_stacktrace(),
+						http_response({#success{success=false,entity=list_to_binary(Err)},Req}) 
+				end;
+			"get" when S =:= "blacklist" ->
+				?INFO_MSG("http blacklist.get ::> ~p",[Args]),
+				try
+					{ok,P} = rfc4627:get_field(Obj, "params"),
+					{ok,JID} = rfc4627:get_field(P, "jid"),
+					BList = aa_blacklist:get_list(JID),
+					http_response({#success{success=true,entity=BList},Req}) 
+				catch 
+					_:_->
+						Err = erlang:get_stacktrace(),
+						http_response({#success{success=false,entity=list_to_binary(Err)},Req}) 
+				end;
 			_ ->
 				http_response({#success{success=false,entity=list_to_binary("method undifine")},Req})
 		end

@@ -1,6 +1,9 @@
 -module(aa_blacklist).
-
 -behaviour(gen_server).
+
+-include_lib("stdlib/include/qlc.hrl").
+-include("ejabberd.hrl").
+-include("jlib.hrl").
 
 %% API
 -export([start_link/0,add/2,remove/2,get_list/1]).
@@ -23,16 +26,16 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 add(From,To) ->
-	ok.
+	gen_server:cast(?MODULE,{add,From,To}).
 
 remove(From,To) ->
-	ok.
+	gen_server:cast(?MODULE,{remove,From,To}).
 
 get_list(JID) ->
-	ok.
+	gen_server:call(?MODULE,{get_list,JID}).	
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -50,7 +53,8 @@ get_list(JID) ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, #state{}}.
+	mnesia:create_table(blacklist,[{attributes,record_info(fields,blacklist)},{disc_copies,[node()]}]),
+	{ok, #state{}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -66,9 +70,15 @@ init([]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call(_Request, _From, State) ->
-    Reply = ok,
-    {reply, Reply, State}.
+handle_call({get_list,JID}, _From, State) ->
+	?DEBUG("get_list_input=~p",[JID]),
+	F = fun()->
+		Q = qlc:q([element(1,BL#blacklist.key)||BL<-mnesia:table(blacklist),element(2,BL#blacklist.key)=:=JID]),
+		qlc:e(Q)
+	end,
+	{_,R} = mnesia:transaction(F),
+	?DEBUG("get_list_result=~p",[R]),
+	{reply, R, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -80,8 +90,29 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast(_Msg, State) ->
-    {noreply, State}.
+handle_cast({add,From,To}, State) -> 
+	try
+		?INFO_MSG("blacklist ::> ~p ",[{add,From,To}]), 
+		BL=#blacklist{key={From,To},ct=timestamp()},
+		mnesia:dirty_write(blacklist,BL) 
+	catch
+		_:_ ->
+			Err = erlang:get_stacktrace(),
+			?INFO_MSG("blacklist_exception ::> ~p ; ~p",[{add,From,To},Err]) 
+	end,
+	{noreply, State};
+
+handle_cast({remove,From,To}, State) -> 
+	Key = {From,To},
+	try
+		?INFO_MSG("blacklist ::> ~p ",[{remove,From,To}]), 
+		mnesia:dirty_delete(blacklist,Key) 
+	catch
+		_:_ ->
+			Err = erlang:get_stacktrace(),
+			?INFO_MSG("blacklist_exception ::> ~p ; ~p",[{remove,From,To},Err]) 
+	end,
+	{noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -93,8 +124,7 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(_Info, State) ->
-    {noreply, State}.
+handle_info(_Info, State) -> {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -124,3 +154,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+timestamp() ->  
+	{M, S, _} = os:timestamp(),
+	M * 1000000 + S.
