@@ -24,10 +24,19 @@ start_link() ->
 
 
 %user_send_packet(From, To, Packet) -> ok
-user_send_packet_handler(From, To, Packet) ->
+user_send_packet_handler(#jid{user=FUser,server=FDomain}=From, #jid{user=TUser,server=TDomain}=To, Packet) ->
 	?INFO_MSG("###### my_hookhandler ::::> user_send_packet_handler ~p",[liangchuan_debug]),
-	gen_server:cast(?MODULE,{group_chat_filter,From,To,Packet}),
-	gen_server:cast(aa_log,{store,Packet}),
+	BlacklistKey = {list_to_binary(FUser++"@"++FDomain),list_to_binary(TUser++"@"++TDomain)}, 
+	?DEBUG("BlacklistKey=~p",[BlacklistKey]),
+	case length(mnesia:dirty_read(blacklist,BlacklistKey)) of
+		0 ->
+			gen_server:cast(?MODULE,{group_chat_filter,From,To,Packet}),
+			gen_server:cast(aa_log,{store,Packet});
+		_ ->
+			gen_server:cast(?MODULE,{server_ack,From,To,Packet}),
+			MSG_ID = xml:get_tag_attr_s("id", Packet),
+			?INFO_MSG("discard_message ::> Blacklist_key=~p ; MSG_ID=~p",[BlacklistKey,MSG_ID])
+	end,
 	ok.
 	
 
@@ -47,7 +56,7 @@ init([]) ->
 	lists:foreach(
 	  fun(Host) ->
 		?INFO_MSG("#### _begin Host=~p~n",[Host]),
-		ejabberd_hooks:add(user_send_packet,Host,?MODULE, user_send_packet_handler ,80),
+		ejabberd_hooks:add(user_send_packet,Host,?MODULE, user_send_packet_handler ,70),
 	    	?INFO_MSG("#### user_send_packet Host=~p~n",[Host])
   	  end, ?MYHOSTS),
 	?INFO_MSG("INIT_END <<<< ~p",[liangchuan_debug]),
@@ -79,7 +88,9 @@ handle_call({sync_packet,K,From,To,Packet}, _F, #state{ecache_node=Node,ecache_m
 handle_cast({group_chat_filter,From,To,Packet}, State) ->
 	filter_cast({From,To,Packet,true}, State);
 handle_cast({group_chat_filter,From,To,Packet,SACK}, State) ->
-	filter_cast({From,To,Packet,SACK}, State).
+	filter_cast({From,To,Packet,SACK}, State);
+handle_cast({server_ack,From,To,Packet}, State) ->
+	server_ack(From,To,Packet,State).
 
 filter_cast({From,#jid{server=Domain}=To,Packet,SACK}, State) ->
 	%% -record(jid, {user, server, resource, luser, lserver, lresource}).

@@ -538,57 +538,68 @@ is_privacy_allow(From, To, Packet, PrivacyList) ->
 		{From, To, Packet},
 		in]).
 
-route_message(From, To, Packet) ->
-    LUser = To#jid.luser,
-    LServer = To#jid.lserver,
-    PrioRes = get_user_present_resources(LUser, LServer),
-    case catch lists:max(PrioRes) of
-	{Priority, _R} when is_integer(Priority), Priority >= 0 ->
-	    lists:foreach(
-	      %% Route messages to all priority that equals the max, if
-	      %% positive
-	      fun({P, R}) when P == Priority ->
-		      LResource = jlib:resourceprep(R),
-		      USR = {LUser, LServer, LResource},
-		      case mnesia:dirty_index_read(session, USR, #session.usr) of
-			  [] ->
-			      ok; % Race condition
-			  Ss ->
-			      Session = lists:max(Ss),
-			      Pid = element(2, Session#session.sid),
-			      ?DEBUG("sending to process ~p~n", [Pid]),
-			      Pid ! {route, From, To, Packet}
-		      end;
-		 %% Ignore other priority:
-		 ({_Prio, _Res}) ->
-		      ok
-	      end,
-	      PrioRes);
-	_ ->
-	    case xml:get_tag_attr_s("type", Packet) of
-		"error" ->
-		    ok;
-		"groupchat" ->
-		    bounce_offline_message(From, To, Packet);
-		"headline" ->
-		    bounce_offline_message(From, To, Packet);
+route_message(#jid{user=FUser,server=FDomain}=From, #jid{user=TUser,server=TDomain}=To, Packet) ->
+	
+	%% add by liangc 140425 : 过滤黑名单
+	BlacklistKey = {list_to_binary(FUser++"@"++FDomain),list_to_binary(TUser++"@"++TDomain)},	
+	?DEBUG("BlacklistKey=~p",[BlacklistKey]),
+	case length(mnesia:dirty_read(blacklist,BlacklistKey)) of
+		0 ->
+
+			LUser = To#jid.luser,
+			LServer = To#jid.lserver,
+			PrioRes = get_user_present_resources(LUser, LServer),
+			case catch lists:max(PrioRes) of
+			    {Priority, _R} when is_integer(Priority), Priority >= 0 ->
+			        lists:foreach(
+			          %% Route messages to all priority that equals the max, if
+			          %% positive
+			          fun({P, R}) when P == Priority ->
+			    	      LResource = jlib:resourceprep(R),
+			    	      USR = {LUser, LServer, LResource},
+			    	      case mnesia:dirty_index_read(session, USR, #session.usr) of
+			    		  [] ->
+			    		      ok; % Race condition
+			    		  Ss ->
+			    		      Session = lists:max(Ss),
+			    		      Pid = element(2, Session#session.sid),
+			    		      ?DEBUG("sending to process ~p~n", [Pid]),
+			    		      Pid ! {route, From, To, Packet}
+			    	      end;
+			    	 %% Ignore other priority:
+			    	 ({_Prio, _Res}) ->
+			    	      ok
+			          end,
+			          PrioRes);
+			    _ ->
+			        case xml:get_tag_attr_s("type", Packet) of
+			    	"error" ->
+			    	    ok;
+			    	"groupchat" ->
+			    	    bounce_offline_message(From, To, Packet);
+			    	"headline" ->
+			    	    bounce_offline_message(From, To, Packet);
+			    	_ ->
+			    	    case ejabberd_auth:is_user_exists(LUser, LServer) of
+			    		true ->
+			    		    case is_privacy_allow(From, To, Packet) of
+			    			true ->
+			    				?INFO_MSG("~p~n LServer=~p~n From=~p~n To=~p~n Packet=~p~n",[route_message_offline_message_hook,LServer, From, To, Packet]),
+			    			    ejabberd_hooks:run(offline_message_hook,LServer,[From, To, Packet]);
+			    			false ->
+			    			    ok
+			    		    end;
+			    		_ ->
+			    		    Err = jlib:make_error_reply(
+			    			    Packet, ?ERR_SERVICE_UNAVAILABLE),
+			    		    ejabberd_router:route(To, From, Err)
+			    	    end
+			        end
+			end;
 		_ ->
-		    case ejabberd_auth:is_user_exists(LUser, LServer) of
-			true ->
-			    case is_privacy_allow(From, To, Packet) of
-				true ->
-					?INFO_MSG("~p~n LServer=~p~n From=~p~n To=~p~n Packet=~p~n",[route_message_offline_message_hook,LServer, From, To, Packet]),
-				    ejabberd_hooks:run(offline_message_hook,LServer,[From, To, Packet]);
-				false ->
-				    ok
-			    end;
-			_ ->
-			    Err = jlib:make_error_reply(
-				    Packet, ?ERR_SERVICE_UNAVAILABLE),
-			    ejabberd_router:route(To, From, Err)
-		    end
-	    end
-    end.
+			MSG_ID = xml:get_tag_attr_s("id", Packet),
+			?INFO_MSG("discard_message ::> Blacklist_key=~p ; MSG_ID=~p",[BlacklistKey,MSG_ID])
+	end.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
