@@ -95,6 +95,7 @@ handle_call({handle_http,Req}, _From, State) ->
 				Req:parse_post()
 		end,
 		[{"body",Body}] = Args,
+		?DEBUG("http_ARGS ::> ~n~p",[Args]),	 
 		{ok,Obj,_Re} = rfc4627:decode(Body),
 		?INFO_MSG("http ::> body=~p",[Body]),	 
 		{ok,M} = rfc4627:get_field(Obj, "method"),
@@ -145,7 +146,10 @@ handle_call({handle_http,Req}, _From, State) ->
 				http_response({#success{success=false,entity=list_to_binary("method undifine")},Req})
 		end
 	catch
-		_:Reason -> ?INFO_MSG("==== aa_http ====~p",[Reason])
+		_:Reason -> 
+			?INFO_MSG("==== aa_http ====~p",[Reason]),
+			Err0 = erlang:get_stacktrace(),
+			http_response({#success{success=false,entity=list_to_binary(Err0)},Req}) 
 	end,
 	{reply,Reply, State};
 
