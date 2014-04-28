@@ -94,8 +94,8 @@ handle_call({handle_http,Req}, _From, State) ->
 			'POST' ->
 				Req:parse_post()
 		end,
-		[{"body",Body}] = Args,
 		?DEBUG("http_ARGS ::> ~n~p",[Args]),	 
+		[{"body",Body}] = Args,
 		{ok,Obj,_Re} = rfc4627:decode(Body),
 		?INFO_MSG("http ::> body=~p",[Body]),	 
 		{ok,M} = rfc4627:get_field(Obj, "method"),
