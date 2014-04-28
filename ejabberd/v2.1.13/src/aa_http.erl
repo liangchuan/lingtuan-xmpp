@@ -95,6 +95,15 @@ handle_call({handle_http,Req}, _From, State) ->
 				Req:parse_post()
 		end,
 		?DEBUG("http_ARGS ::> ~n~p",[Args]),	 
+		Body = case Args of 
+			       [{"body",P0}]->
+				       	P0;
+			       [{"body",[],P1}] ->
+					P1;
+			       O->
+					?INFO_MSG("error_args ::>~n~p",[Args]), 
+					""
+		end,
 		[{"body",Body}] = Args,
 		{ok,Obj,_Re} = rfc4627:decode(Body),
 		?INFO_MSG("http ::> body=~p",[Body]),	 
@@ -147,9 +156,7 @@ handle_call({handle_http,Req}, _From, State) ->
 		end
 	catch
 		_:Reason -> 
-			?INFO_MSG("==== aa_http ====~p",[Reason]),
-			Err0 = erlang:get_stacktrace(),
-			http_response({#success{success=false,entity=list_to_binary(Err0)},Req}) 
+			?INFO_MSG("==== aa_http_normal ====~p",[Reason]) 
 	end,
 	{reply,Reply, State};
 
