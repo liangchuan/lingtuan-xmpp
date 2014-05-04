@@ -14,7 +14,7 @@ ERLANG_LIBS = -L/app/erlang/lib/erlang/lib/erl_interface-3.7.14/lib -lerl_interf
 
 ASN_FLAGS = -bber_bin +der +compact_bit_string +optimize +noobj
 
-INSTALLUSER=liangc
+INSTALLUSER=
 # if no user was enabled, don't set privileges or ownership
 ifeq ($(INSTALLUSER),)
   O_USER=
@@ -77,7 +77,7 @@ endif
 prefix = /home/appusr/ejabberd/runtime
 exec_prefix = ${prefix}
 
-SUBDIRS = mod_irc mod_pubsub mod_muc mod_proxy65 eldap  web stringprep stun tls odbc ejabberd_zlib
+SUBDIRS = mod_irc mod_pubsub mod_muc mod_proxy65 eldap  web stringprep stun tls  ejabberd_zlib
 ERLSHLIBS += expat_erl.so
 ERLBEHAVS = cyrsasl.erl gen_mod.erl p1_fsm.erl
 SOURCES_ALL = $(wildcard *.erl)
@@ -188,7 +188,7 @@ install: all
 		&& install -b -m 640 $(G_USER) ejabberd.cfg.example $(ETCDIR)/ejabberd.cfg-new \
 		|| install -b -m 640 $(G_USER) ejabberd.cfg.example $(ETCDIR)/ejabberd.cfg
 	sed -e "s*@rootdir@*/home/appusr/ejabberd/runtime*" \
-		-e "s*@installuser@*liangc*" \
+		-e "s*@installuser@**" \
 		-e "s*@LIBDIR@*${exec_prefix}/lib*" \
 		-e "s*@SYSCONFDIR@*${prefix}/etc*" \
 		-e "s*@LOCALSTATEDIR@*${prefix}/var*" \
@@ -245,18 +245,18 @@ install: all
 	#
 	# Spool directory
 	install -d -m 750 $(O_USER) $(SPOOLDIR)
-	$(CHOWN_COMMAND) -R liangc $(SPOOLDIR) >$(CHOWN_OUTPUT)
+	$(CHOWN_COMMAND) -R  $(SPOOLDIR) >$(CHOWN_OUTPUT)
 	chmod -R 750 $(SPOOLDIR)
-	[ ! -f $(COOKIEFILE) ] || { $(CHOWN_COMMAND) liangc $(COOKIEFILE) >$(CHOWN_OUTPUT) ; chmod 400 $(COOKIEFILE) ; }
+	[ ! -f $(COOKIEFILE) ] || { $(CHOWN_COMMAND)  $(COOKIEFILE) >$(CHOWN_OUTPUT) ; chmod 400 $(COOKIEFILE) ; }
 	#
 	# ejabberdctl lock directory
 	install -d -m 750 $(O_USER) $(CTLLOCKDIR)
-	$(CHOWN_COMMAND) -R liangc $(CTLLOCKDIR) >$(CHOWN_OUTPUT)
+	$(CHOWN_COMMAND) -R  $(CTLLOCKDIR) >$(CHOWN_OUTPUT)
 	chmod -R 750 $(CTLLOCKDIR)
 	#
 	# Log directory
 	install -d -m 750 $(O_USER) $(LOGDIR)
-	$(CHOWN_COMMAND) -R liangc $(LOGDIR) >$(CHOWN_OUTPUT)
+	$(CHOWN_COMMAND) -R  $(LOGDIR) >$(CHOWN_OUTPUT)
 	chmod -R 750 $(LOGDIR)
 	#
 	# Documentation

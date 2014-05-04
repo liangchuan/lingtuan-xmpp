@@ -7,7 +7,7 @@
 -include("jlib.hrl").
 
 %% API
--export([start_link/0,store/1]).
+-export([start_link/0,store/1,get_text_message_from_packet/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -54,8 +54,8 @@ feach_message([],List) ->
 
 get_text_message_form_packet_result( Body )->
        {xmlelement,"body",_,List} = Body, 
-       Res = lists:map(fun({_,V})-> binary_to_list(V) end,List), 
-       ResultMessage = lists:merge(Res), 
+       Res = lists:map(fun({_,V})-> binary_to_list(V) end,List),
+       ResultMessage = binary_to_list(list_to_binary(Res)),
        ResultMessage.
 
 log(Packet,N) ->

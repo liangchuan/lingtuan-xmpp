@@ -21,7 +21,7 @@
 	 sm_register_connection_hook_handler/3,
 	 sm_remove_connection_hook_handler/3,
 	 user_available_hook_handler/1
-]).
+	]).
 
 start_link() ->
 	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -39,25 +39,25 @@ send_offline_msg(JID) ->
 	%% TODO 这里，如果发送失败了，是需要重新发送的，但是先让他跑起来
 	?INFO_MSG("@@@@ send_offline_msg :::> KEY=~p ; R.size=~p~n",[KEY,length(R)]),
 	lists:foreach(fun(ID)->
-		try	
-			case gen_server:call(?MODULE,{ecache_cmd,["GET",ID]}) of
-				Obj when erlang:is_binary(Obj) ->
-					{FF,TT,PP} = erlang:binary_to_term(Obj),
-					Rtn = case ejabberd_router:route(FF, TT, PP) of
-					    ok -> ok; 
-					    Err -> "Error: "++Err
-					end,
-					?INFO_MSG("@ SEND :::::> KEY=~p; ID=~p ",[KEY,ID]);
-				Other ->	
-					ZREM_R = gen_server:call(?MODULE,{ecache_cmd,["ZREM",KEY,ID]}),
-					?INFO_MSG("@ SEND [DEL]::::> KEY=~p; ID=~p; ERR=~p; ZREM_R=~p",[KEY,ID,Other,ZREM_R])	
-			end
-		catch
-			E:I ->
-				?INFO_MSG("~p ; ~p",[E,I])	
-		end,
-		ok
-	end,R),	
+				      try	
+					      case gen_server:call(?MODULE,{ecache_cmd,["GET",ID]}) of
+						      Obj when erlang:is_binary(Obj) ->
+							      {FF,TT,PP} = erlang:binary_to_term(Obj),
+							      Rtn = case ejabberd_router:route(FF, TT, PP) of
+									    ok -> ok; 
+									    Err -> "Error: "++Err
+								    end,
+							      ?INFO_MSG("@ SEND :::::> KEY=~p; ID=~p ",[KEY,ID]);
+						      Other ->	
+							      ZREM_R = gen_server:call(?MODULE,{ecache_cmd,["ZREM",KEY,ID]}),
+							      ?INFO_MSG("@ SEND [DEL]::::> KEY=~p; ID=~p; ERR=~p; ZREM_R=~p",[KEY,ID,Other,ZREM_R])	
+					      end
+				      catch
+					      E:I ->
+						      ?INFO_MSG("~p ; ~p",[E,I])	
+				      end,
+				      ok
+		      end,R),	
 	?INFO_MSG("@@@@ send_offline_message ::>KEY=~p  <<<<<<<<<<<<<<<<<",[KEY]),
 	ok.
 
@@ -67,41 +67,46 @@ sm_remove_connection_hook_handler(SID, JID, Info) -> ok.
 %% 离线消息事件
 %% 保存离线消息
 offline_message_hook_handler(#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet) ->
+	%% {apns_push:atom,jid:string,id:string,msgtype:string,msg:string}
+
 	Type = xml:get_tag_attr_s("type", Packet),
 	ID = xml:get_tag_attr_s("id", Packet),
 	IS_GROUP = aa_group_chat:is_group_chat(To),
 	if IS_GROUP==false,FromUser=/="messageack",User=/="messageack",Type=/="error",Type=/="groupchat",Type=/="headline" ->
-			SYNCID = ID++"@"++Domain,
-			Time = xml:get_tag_attr_s("msgTime", Packet),
-			%% ?INFO_MSG("ERROR++++++++++++++++ Time=~p;~n~nPacket=~p",[Time,Packet]),
-			%% {ok,TimeStamp} = getTime(Time),
-			%% TODO 7天以后过期
-			%% Exp = ?EXPIRE+TimeStamp,
-			KEY = User++"@"++Domain++"/offline_msg",
-			?INFO_MSG("::::store_offline_msg::::>type=~p;KEY=~p",[Type,KEY]),
-			gen_server:call(?MODULE,{store_offline_msg,KEY,SYNCID});
-		true ->
-			ok
+		   SYNCID = ID++"@"++Domain,
+		   Time = xml:get_tag_attr_s("msgTime", Packet),
+		   %% ?INFO_MSG("ERROR++++++++++++++++ Time=~p;~n~nPacket=~p",[Time,Packet]),
+		   %% {ok,TimeStamp} = getTime(Time),
+		   %% TODO 7天以后过期
+		   %% Exp = ?EXPIRE+TimeStamp,
+		   KEY = User++"@"++Domain++"/offline_msg",
+		   ?INFO_MSG("::::store_offline_msg::::>type=~p;KEY=~p",[Type,KEY]),
+		   gen_server:call(?MODULE,{store_offline_msg,KEY,SYNCID});
+	   true ->
+		   ok
 	end.
 
 %% ====================================================================
 %% Behavioural functions 
 %% ====================================================================
--record(state, { ecache_node, ecache_mod=ecache_main, ecache_fun=cmd }).
+-record(state, { ecache_node, ecache_mod=ecache_main, ecache_fun=cmd,log_node }).
 
 init([]) ->
 	?INFO_MSG("INIT_START_OFFLINE_MOD >>>>>>>>>>>>>>>>>>>>>>>> ~p",[liangchuan_debug]),  
 	lists:foreach(
 	  fun(Host) ->
-		ejabberd_hooks:add(offline_message_hook, Host, ?MODULE, offline_message_hook_handler, 40),
-		ejabberd_hooks:add(sm_remove_connection_hook, Host, ?MODULE, sm_remove_connection_hook_handler, 40),
-		ejabberd_hooks:add(sm_register_connection_hook, Host, ?MODULE, sm_register_connection_hook_handler, 60),
-		ejabberd_hooks:add(user_available_hook, Host, ?MODULE, user_available_hook_handler, 40)
+			  ejabberd_hooks:add(offline_message_hook, Host, ?MODULE, offline_message_hook_handler, 40),
+			  ejabberd_hooks:add(sm_remove_connection_hook, Host, ?MODULE, sm_remove_connection_hook_handler, 40),
+			  ejabberd_hooks:add(sm_register_connection_hook, Host, ?MODULE, sm_register_connection_hook_handler, 60),
+			  ejabberd_hooks:add(user_available_hook, Host, ?MODULE, user_available_hook_handler, 40)
 	  end, ?MYHOSTS),
 	?INFO_MSG("INIT_END_OFFLINE_MOD <<<<<<<<<<<<<<<<<<<<<<<<< ~p",[liangchuan_debug]),
 	Conn = conn_ecache_node(),
 	{ok,_,Node} = Conn,
-	{ok, #state{ecache_node=Node}}.
+	
+	[Domain|_] = ?MYHOSTS,
+	Log_node = ejabberd_config:get_local_option({log_node,Domain}),
+	{ok, #state{ecache_node=Node,log_node=Log_node}}.
 
 handle_cast(Msg, State) -> {noreply, State}.
 handle_call({clear_offline_msg,KEY,ID},_From, State) -> 
@@ -155,4 +160,25 @@ conn_ecache_node() ->
 			Err = erlang:get_stacktrace(),
 			log4erl:error("error ::::> E=~p ; I=~p~n Error=~p",[E,I,Err]),
 			{error,E,I}
+	end.
+
+apns_push(Packet,N)->
+	case Packet of 
+		{xmlelement,"message",Attr,_} -> 
+			D = dict:from_list(Attr),
+			ID      = case dict:is_key("id",D) of true-> dict:fetch("id",D); false-> "" end,
+			From    = case dict:is_key("from",D) of true-> dict:fetch("from",D); false-> "" end,
+			To      = case dict:is_key("to",D) of true-> dict:fetch("to",D); false-> "" end,
+			MsgType = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); false-> "" end,
+			Msg     = erlang:list_to_binary(aa_log:get_text_message_from_packet(Packet)),
+			Message = {apns_push,ID,From,To,MsgType,Msg},
+			case net_adm:ping(N) of
+				pang ->
+					?INFO_MSG("write_log ::::> ~p",[Message]),
+					Message;
+				pong ->
+					{logbox,N}!Message
+			end;
+		_ ->
+			skip
 	end.

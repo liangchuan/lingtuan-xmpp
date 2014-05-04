@@ -98,7 +98,9 @@
                                 {".txt",  "text/plain"},
                                 {".xml",  "application/xml"},
                                 {".xpi",  "application/x-xpinstall"},
-                                {".xul",  "application/vnd.mozilla.xul+xml"}]).
+                                {".xul",  "application/vnd.mozilla.xul+xml"},
+				{".xml",  "application/xml"}
+]).
 
 -compile(export_all).
 

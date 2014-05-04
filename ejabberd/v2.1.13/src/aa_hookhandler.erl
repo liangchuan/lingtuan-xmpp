@@ -47,7 +47,8 @@ user_send_packet_handler(#jid{user=FUser,server=FDomain}=From, #jid{user=TUser,s
 -record(state, {
 	ecache_node,
 	ecache_mod=ecache_main,
-	ecache_fun=cmd	
+	ecache_fun=cmd,
+	log_node	
 }).
 -record(dmsg,{mid,pid}).
 
@@ -63,7 +64,6 @@ init([]) ->
 	Conn = conn_ecache_node(),
 	?INFO_MSG("INIT_END <<<<<<<<<<<<<<<<<<<<<<<<< Conn=~p",[Conn]),
 	{ok,_,Node} = Conn,
-
 	mnesia:create_table(dmsg,[{attributes,record_info(fields,dmsg)},{ram_copies,[node()]}]),
 	{ok, #state{ecache_node=Node}}.
 
