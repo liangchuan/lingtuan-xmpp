@@ -43,7 +43,6 @@ public class GetServerController {
 	private void init() throws IOException, InterruptedException, KeeperException, JSONException{
 		logger.info("zooServer = "+zooServer);
 		app = new ConfigWatcher(zooServer);
-		
 		String[] hostArr = nodeDefHost.split(":");
 		defNode.put("ip", hostArr[0]);
 		defNode.put("port", hostArr[1]);

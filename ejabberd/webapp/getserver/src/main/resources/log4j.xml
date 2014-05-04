@@ -37,6 +37,27 @@
 			<param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss,SSS z} -- %m%n" />
 		</layout>
 	</appender>
+	
+	<appender name="SERVICE_FILE" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="File" value="./logs/service_out.log" />
+		<param name="Append" value="true" />
+		<param name="DatePattern" value="'.'yyyy-MM-dd" />
+
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss,SSS z} -- %m%n" />
+		</layout>
+	</appender>
+	
+	<appender name="APNS_FILE" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="File" value="./logs/apns_push.log" />
+		<param name="Append" value="true" />
+		<param name="DatePattern" value="'.'yyyy-MM-dd" />
+
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss,SSS z} -- %m%n" />
+		</layout>
+	</appender>
+	
 
 	<!-- Turn off form validation messages -->
 	<logger name="org.apache.commons.validator.ValidatorResources">
@@ -56,6 +77,18 @@
     <logger name="com.momoplan.pet.framework.manager.node">
         <level value="DEBUG"/>
         <appender-ref ref="MSG_FILE" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+    
+    <logger name="com.momoplan.pet.framework.manager.node.apnspush">
+        <level value="DEBUG"/>
+        <appender-ref ref="APNS_FILE" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+    
+    <logger name="com.momoplan.pet.framework.manager.service">
+        <level value="DEBUG"/>
+        <appender-ref ref="SERVICE_FILE" />
         <appender-ref ref="CONSOLE" />
     </logger>
     
