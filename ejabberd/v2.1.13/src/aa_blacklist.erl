@@ -85,7 +85,7 @@ handle_call({get_list,JID}, _From, State) ->
 handle_call({get_with,JID}, _From, State) ->
 	?DEBUG("get_with_input=~p",[JID]),
 	F = fun()->
-		Q = qlc:q([element(1,BL#blacklist.key)||BL<-mnesia:table(blacklist),element(1,BL#blacklist.key)=:=JID]),
+		Q = qlc:q([element(2,BL#blacklist.key)||BL<-mnesia:table(blacklist),element(1,BL#blacklist.key)=:=JID]),
 		qlc:e(Q)
 	end,
 	{_,R} = mnesia:transaction(F),
