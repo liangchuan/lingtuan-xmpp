@@ -151,6 +151,18 @@ handle_call({handle_http,Req}, _From, State) ->
 						Err = erlang:get_stacktrace(),
 						http_response({#success{success=false,entity=list_to_binary(Err)},Req}) 
 				end;
+			"with" when S =:= "blacklist" ->
+				?INFO_MSG("http blacklist.with ::> ~p",[Args]),
+				try
+					{ok,P} = rfc4627:get_field(Obj, "params"),
+					{ok,JID} = rfc4627:get_field(P, "jid"),
+					BList = aa_blacklist:get_with(JID),
+					http_response({#success{success=true,entity=BList},Req}) 
+				catch 
+					_:_->
+						Err = erlang:get_stacktrace(),
+						http_response({#success{success=false,entity=list_to_binary(Err)},Req}) 
+				end;
 			_ ->
 				http_response({#success{success=false,entity=list_to_binary("method undifine")},Req})
 		end
