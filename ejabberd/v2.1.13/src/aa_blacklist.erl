@@ -6,7 +6,7 @@
 -include("jlib.hrl").
 
 %% API
--export([start_link/0,add/2,remove/2,get_list/1]).
+-export([start_link/0,add/2,remove/2,get_list/1,get_with/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -36,6 +36,9 @@ remove(From,To) ->
 
 get_list(JID) ->
 	gen_server:call(?MODULE,{get_list,JID}).	
+
+get_with(JID) ->
+	gen_server:call(?MODULE,{get_with,JID}).	
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -78,6 +81,15 @@ handle_call({get_list,JID}, _From, State) ->
 	end,
 	{_,R} = mnesia:transaction(F),
 	?DEBUG("get_list_result=~p",[R]),
+	{reply, R, State};
+handle_call({get_with,JID}, _From, State) ->
+	?DEBUG("get_with_input=~p",[JID]),
+	F = fun()->
+		Q = qlc:q([element(1,BL#blacklist.key)||BL<-mnesia:table(blacklist),element(1,BL#blacklist.key)=:=JID]),
+		qlc:e(Q)
+	end,
+	{_,R} = mnesia:transaction(F),
+	?DEBUG("get_with_result=~p",[R]),
 	{reply, R, State}.
 
 %%--------------------------------------------------------------------
