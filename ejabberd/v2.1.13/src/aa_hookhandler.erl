@@ -90,7 +90,8 @@ handle_cast({group_chat_filter,From,To,Packet}, State) ->
 handle_cast({group_chat_filter,From,To,Packet,SACK}, State) ->
 	filter_cast({From,To,Packet,SACK}, State);
 handle_cast({server_ack,From,To,Packet}, State) ->
-	server_ack(From,To,Packet,State).
+	%% server_ack(From,To,Packet,State).
+	{noreply, State}.
 
 filter_cast({From,#jid{server=Domain}=To,Packet,SACK}, State) ->
 	%% -record(jid, {user, server, resource, luser, lserver, lresource}).
