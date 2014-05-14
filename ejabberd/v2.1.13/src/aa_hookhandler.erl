@@ -139,6 +139,8 @@ conn_ecache_node() ->
 	end.
 
 server_ack(#jid{user=FU,server=FD}=From,To,Packet,State) ->
+	ok.
+server_ack(old,#jid{user=FU,server=FD}=From,To,Packet,State) ->
 	Domain = FD,
         {_,"message",Attr,_} = Packet,
         D = dict:from_list(Attr),
