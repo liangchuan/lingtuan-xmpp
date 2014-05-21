@@ -93,7 +93,7 @@ handle_cast({server_ack,From,To,Packet}, State) ->
 	%% server_ack(From,To,Packet,State).
 	{noreply, State}.
 
-filter_cast({From,#jid{server=Domain}=To,Packet,SACK}, State) ->
+filter_cast({#jid{server=Domain}=From,To,Packet,SACK}, State) ->
 	%% -record(jid, {user, server, resource, luser, lserver, lresource}).
 	[_,E|_] = tuple_to_list(Packet),
 	case E of 
@@ -110,7 +110,137 @@ filter_cast({From,#jid{server=Domain}=To,Packet,SACK}, State) ->
 							?DEBUG("###### ack_group_chat_msg ###### Packet=~p",[Packet]),
 							message_handler(From,To,Packet,State);
 						_->
-							aa_group_chat:route_group_msg(From,To,Packet) 
+							%% groupchat and msgtype=system body is json format
+							case MT=:="system" of
+								true ->
+									[JSON] = aa_log:get_text_message_from_packet(Packet),	
+									?DEBUG("SYSTEM ::::> JSON=~p",[JSON]),
+									{ok,JO,_} = rfc4627:decode(erlang:list_to_binary(JSON)),
+									?DEBUG("SYSTEM ::::> JO=~p",[JO]),
+									case rfc4627:get_field(JO,"type") of 
+										not_found ->
+											skip;
+										{ok,<<"3">>} ->
+											%% 邀约请求消息
+											TK = toinvitedlist,
+											{ok,ToList} = rfc4627:get_field(JO,TK),
+											case rfc4627:get_field(JO,TK) of
+												not_found ->
+													skip;
+												{ok,ToList} ->
+													?DEBUG("T3T3T3T3 ::::> ToList=~p",[ToList]),
+													{obj,TL3} = JO,
+													TL3_1=lists:map(fun({K3,V3})-> case K3=:=TK of true->skip;false->{K3,V3} end end,TL3),
+													TL3_2=[X||X<-TL3_1,X=/=skip],
+													JO_1 = {obj,TL3_2},
+													?DEBUG("T3T3T3T3 ::::> JO_1=~p",[JO_1]), 
+													J4B = list_to_binary(rfc4627:encode(JO_1)),
+													?DEBUG("T3T3T3T3 ::::> J4B=~p",[J4B]), 
+													lists:foreach(fun(To3) ->
+														UID = binary_to_list(To3),
+														JID3=#jid{user=UID,server=Domain,luser=UID,
+																  lserver=Domain,resource=[],lresource=[]},
+														route_3(From,JID3,Packet,J4B)	
+													end,ToList) 
+											end;
+										{ok,<<"7">>} ->
+											%% 活动管理者 同意报名用户参加消息 
+											TK = "applylist",
+											{ok,ToList} = rfc4627:get_field(JO,TK),
+											case rfc4627:get_field(JO,TK) of
+												not_found ->
+													skip;
+												{ok,ToList} ->
+													?DEBUG("T7T7T7T7 ::::> ToList=~p",[ToList]),
+													{obj,TL3} = JO,
+													TL3_1=lists:map(fun({K3,V3})-> case K3=:=TK of true->skip;false->{K3,V3} end end,TL3),
+													TL3_2=[X||X<-TL3_1,X=/=skip],
+													JO_1 = {obj,TL3_2},
+													?DEBUG("T7T7T7T7 ::::> JO_1=~p",[JO_1]), 
+													J4B = list_to_binary(rfc4627:encode(JO_1)),
+													?DEBUG("T7T7T7T7 ::::> J4B=~p",[J4B]), 
+													lists:foreach(fun(To3) ->
+														UID = binary_to_list(To3),
+														JID3=#jid{user=UID,server=Domain,luser=UID,
+																  lserver=Domain,resource=[],lresource=[]},
+														route_3(From,JID3,Packet,J4B)	
+													end,ToList) 
+											end;
+										{ok,<<"8">>} ->
+											%% 活动管理者 拒绝报名用户参加请求消息 
+											TK = "applylist",
+											{ok,ToList} = rfc4627:get_field(JO,TK),
+											case rfc4627:get_field(JO,TK) of
+												not_found ->
+													skip;
+												{ok,ToList} ->
+													?DEBUG("T8T8T8T8 ::::> ToList=~p",[ToList]),
+													{obj,TL3} = JO,
+													TL3_1=lists:map(fun({K3,V3})-> case K3=:=TK of true->skip;false->{K3,V3} end end,TL3),
+													TL3_2=[X||X<-TL3_1,X=/=skip],
+													JO_1 = {obj,TL3_2},
+													?DEBUG("T8T8T8T8 ::::> JO_1=~p",[JO_1]), 
+													J4B = list_to_binary(rfc4627:encode(JO_1)),
+													?DEBUG("T8T8T8T8 ::::> J4B=~p",[J4B]), 
+													lists:foreach(fun(To3) ->
+														UID = binary_to_list(To3),
+														JID3=#jid{user=UID,server=Domain,luser=UID,
+																  lserver=Domain,resource=[],lresource=[]},
+														route_3(From,JID3,Packet,J4B)	
+													end,ToList) 
+											end;
+										{ok,<<"13">>} ->
+											%% 活动管理者 拒绝报名用户参加请求消息 
+											TK = "grouplist",
+											{ok,ToList} = rfc4627:get_field(JO,TK),
+											case rfc4627:get_field(JO,TK) of
+												not_found ->
+													skip;
+												{ok,ToList} ->
+													?DEBUG("T13T13T13T13 ::::> ToList=~p",[ToList]),
+													{obj,TL3} = JO,
+													TL3_1=lists:map(fun({K3,V3})-> case K3=:=TK of true->skip;false->{K3,V3} end end,TL3),
+													TL3_2=[X||X<-TL3_1,X=/=skip],
+													JO_1 = {obj,TL3_2},
+													?DEBUG("T13T13T13T13 ::::> JO_1=~p",[JO_1]), 
+													J4B = list_to_binary(rfc4627:encode(JO_1)),
+													?DEBUG("T13T13T13T13 ::::> J4B=~p",[J4B]), 
+													lists:foreach(fun(To3) ->
+														UID = binary_to_list(To3),
+														JID3=#jid{user=UID,server=Domain,luser=UID,
+																  lserver=Domain,resource=[],lresource=[]},
+														route_3(To,JID3,Packet,J4B)	
+													end,ToList) 
+											end;
+										{ok,<<"15">>} ->
+											%% 活动管理者 拒绝报名用户参加请求消息 
+											TK = "grouplist",
+											{ok,ToList} = rfc4627:get_field(JO,TK),
+											case rfc4627:get_field(JO,TK) of
+												not_found ->
+													skip;
+												{ok,ToList} ->
+													?DEBUG("T15T15T15T15 ::::> ToList=~p",[ToList]),
+													{obj,TL3} = JO,
+													TL3_1=lists:map(fun({K3,V3})-> case K3=:=TK of true->skip;false->{K3,V3} end end,TL3),
+													TL3_2=[X||X<-TL3_1,X=/=skip],
+													JO_1 = {obj,TL3_2},
+													?DEBUG("T15T15T15T15 ::::> JO_1=~p",[JO_1]), 
+													J4B = list_to_binary(rfc4627:encode(JO_1)),
+													?DEBUG("T15T15T15T15 ::::> J4B=~p",[J4B]), 
+													lists:foreach(fun(To3) ->
+														UID = binary_to_list(To3),
+														JID3=#jid{user=UID,server=Domain,luser=UID,
+																  lserver=Domain,resource=[],lresource=[]},
+														route_3(To,JID3,Packet,J4B)	
+													end,ToList) 
+											end;
+										_ ->
+											error_type
+									end;
+								_ ->
+									aa_group_chat:route_group_msg(From,To,Packet) 
+							end
 					end;
 				false ->
 					message_handler(From,To,Packet,State)
@@ -241,3 +371,24 @@ ack_task(ID,From,To,Packet)->
 			_ -> ack_task({offline,ID})  
 		end	
 	end.  
+
+
+route_3(From,#jid{user=User,server=Server}=To,Packet,J4B)->
+	{X,E,Attr,_} = Packet,
+	RAttr0 = lists:map(fun({K,V})-> 
+		case K of 
+			"id" -> {K,os:cmd("uuidgen")--"\n"};
+			"to" -> {K,User++"@"++Server};
+			_-> {K,V} 
+		end 
+	end,Attr),
+	Body = [{xmlelement,"body",[],[{xmlcdata,J4B}]}],
+	RPacket = {X,E,RAttr0,Body},
+	?DEBUG("route_3 :::> packet=~p",[RPacket]),
+	case ejabberd_router:route(From, To, RPacket) of
+		ok ->
+			gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
+			{ok,ok};
+		Err ->
+			{error,Err}
+	end.
