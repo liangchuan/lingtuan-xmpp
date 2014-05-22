@@ -122,7 +122,7 @@ filter_cast({#jid{server=Domain}=From,To,Packet,SACK}, State) ->
 											skip;
 										{ok,<<"3">>} ->
 											%% 邀约请求消息
-											TK = toinvitedlist,
+											TK = "toinvitedlist",
 											{ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
 												not_found ->
