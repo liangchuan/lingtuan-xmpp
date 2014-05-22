@@ -175,7 +175,7 @@ check_password_extauth(User, Server, Password) ->
 			%% INPUT ::> {"sn":"123456789","service":"service.sso","method":"check_token","params":{"token":"987654321"}}
 			%% OUTPUT {"success":true,"entity":"xxx"}
 			{SN,TOKEN} = {list_to_binary(os:cmd("uuidgen")--"\n"),list_to_binary(Password)},
-			{Service,Method} = {list_to_binary("service.sso"),list_to_binary("check_token")},
+			{Service,Method} = {list_to_binary("ejabberd"),list_to_binary("check_token")},
 			PostBody = {obj,[{"service",Service},{"method",Method},{"sn",SN},{"params",{obj,[{"token",TOKEN}]}}]},	
 			Form = "body="++rfc4627:encode(PostBody),
 			?INFO_MSG("###### liangc-auth HTTP_TARGET=~p ; request=~p",[HTTPTarget,Form]),

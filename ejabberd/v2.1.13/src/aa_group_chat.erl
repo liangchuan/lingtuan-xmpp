@@ -73,7 +73,7 @@ get_user_list_by_group_id(Domain,GroupId)->
 	?DEBUG("###### get_user_list_by_group_id :::> GroupId=~p",[GroupId]),
  	HTTPTarget =  ejabberd_config:get_local_option({http_server,Domain}),
 	{Service,Method,GID,SN} = {
-			list_to_binary("service.groupchat"),
+			list_to_binary("ejabberd"),
 			list_to_binary("getUserList"),
 			list_to_binary(GroupId),
 			list_to_binary(os:cmd("uuidgen")--"\n")
