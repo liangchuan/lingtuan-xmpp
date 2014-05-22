@@ -93,7 +93,7 @@ handle_cast({server_ack,From,To,Packet}, State) ->
 	%% server_ack(From,To,Packet,State).
 	{noreply, State}.
 
-filter_cast({#jid{server=Domain}=From,To,Packet,SACK}, State) ->
+filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) ->
 	%% -record(jid, {user, server, resource, luser, lserver, lresource}).
 	[_,E|_] = tuple_to_list(Packet),
 	case E of 
@@ -111,7 +111,7 @@ filter_cast({#jid{server=Domain}=From,To,Packet,SACK}, State) ->
 							message_handler(From,To,Packet,State);
 						_->
 							%% groupchat and msgtype=system body is json format
-							case MT=:="system" of
+							case ((MT=:="system") and (TUser=:="0")) of
 								true ->
 									[JSON] = aa_log:get_text_message_from_packet(Packet),	
 									?DEBUG("SYSTEM ::::> JSON=~p",[JSON]),
