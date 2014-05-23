@@ -111,7 +111,7 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 							message_handler(From,To,Packet,State);
 						_->
 							%% groupchat and msgtype=system body is json format
-							case ((MT=:="system") and (TUser=:="0")) of
+							case MT=:="system" of
 								true ->
 									[JSON] = aa_log:get_text_message_from_packet(Packet),	
 									?DEBUG("SYSTEM ::::> JSON=~p",[JSON]),
@@ -239,6 +239,12 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 											error_type
 									end;
 								_ ->
+									skip
+							end,
+							case TUser =:= "0" of
+								true ->
+									skip;
+								false ->
 									aa_group_chat:route_group_msg(From,To,Packet) 
 							end
 					end;
