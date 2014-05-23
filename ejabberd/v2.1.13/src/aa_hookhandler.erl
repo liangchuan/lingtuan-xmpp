@@ -211,7 +211,8 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 																  lserver=Domain,resource=[],lresource=[]},
 														route_3(To,JID3,Packet,J4B)	
 													end,ToList) 
-											end;
+											end,
+											13;
 										{ok,<<"15">>} ->
 											%% 活动管理者 拒绝报名用户参加请求消息 
 											TK = "grouplist",
@@ -239,14 +240,13 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 											error_type
 									end;
 								_ ->
-									skip
-							end,
-							case TUser =:= "0" of
-								true ->
-									skip;
-								false ->
-									aa_group_chat:route_group_msg(From,To,Packet) 
-							end
+									case TUser =:= "0" of
+										true ->
+											skip;
+										false ->
+											aa_group_chat:route_group_msg(From,To,Packet) 
+									end
+							end 
 					end;
 				false ->
 					message_handler(From,To,Packet,State)
