@@ -85,7 +85,9 @@ get_user_list_by_group_id(Domain,GroupId)->
         	{ok, {_,_,Body}} ->
 			DBody = rfc4627:decode(Body),
 			{_,Log,_} = DBody,
-			?DEBUG("###### get_user_list_by_group_id :::> response=~p",[rfc4627:encode(Log)]),
+			?DEBUG("###### get_user_list_by_group_id_response=~p",[Body]),
+			?DEBUG("###### get_user_list_by_group_id_decode=~p",[DBody]),
+			?DEBUG("###### get_user_list_by_group_id_log=~p",[Log]),
  			case DBody of
  				{ok,Obj,_Re} -> 
 					case rfc4627:get_field(Obj,"success") of
@@ -98,6 +100,7 @@ get_user_list_by_group_id(Domain,GroupId)->
 							{fail,Entity}
 					end;
  				Error -> 
+					?DEBUG("###### get_user_list_by_group_id_error=~p",[Error]),
 					{error,Error}
  			end ;
         	{error, Reason} ->
