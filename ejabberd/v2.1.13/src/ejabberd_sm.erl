@@ -564,7 +564,19 @@ route_message(#jid{user=FUser,server=FDomain}=From, #jid{user=TUser,server=TDoma
 			    		      Session = lists:max(Ss),
 			    		      Pid = element(2, Session#session.sid),
 			    		      ?DEBUG("sending to process ~p~n", [Pid]),
-			    		      Pid ! {route, From, To, Packet}
+
+							  RPacket = try
+    						  		{M,S,SS} = now(),
+	    					  		MsgTime = lists:sublist(erlang:integer_to_list(M*1000000000000+S*1000000+SS),1,13),
+		    				  		{Tag,E,Attr,Body} = Packet,
+			   	 			  		RAttr0 = lists:map(fun({K,V})-> case K of "msgTime" -> skip; _-> {K,V} end end,Attr),
+				    		  		RAttr1 = lists:append([X||X<-RAttr0,X=/=skip],[{"msgTime",MsgTime}]),
+					     	  		{Tag,E,RAttr1,Body}
+							  catch 
+							  		_:_ ->
+										Packet
+							  end,
+			    		      Pid ! {route, From, To, RPacket}
 			    	      end;
 			    	 %% Ignore other priority:
 			    	 ({_Prio, _Res}) ->

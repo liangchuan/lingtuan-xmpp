@@ -117,6 +117,8 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 			{X,E,Attr,Body} = Packet,
 			?DEBUG("##### route_group_msg_003 param :::> {User,Domain,GroupId}=~p",[{User,Domain,GroupId}]),
        		D = dict:from_list(Attr),
+			{M,S,SS} = now(),
+			MsgTime = lists:sublist(erlang:integer_to_list(M*1000000000000+S*1000000+SS),1,13),
        		MT = case dict:is_key("msgtype",D) of 
 				true-> 
 					case dict:fetch("msgtype",D) of
@@ -132,10 +134,12 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 					"id" -> {K,os:cmd("uuidgen")--"\n"};
 					"to" -> {K,User++"@"++Domain};
 					"msgtype" -> {K,MT};	
+					"msgTime" -> skip;
 					_-> {K,V} 
 				end 
 			end,Attr),
 			RAttr1 = lists:append(RAttr0,[{"groupid",GroupId}]),
+			RAttr2 = lists:append([X||X<-RAttr1,X=/=skip],[{"msgTime",MsgTime}]),
 
 			%% TODO Groupmember
 			[JSON] = aa_log:get_text_message_from_packet(Packet),	
@@ -147,7 +151,7 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 			J4B = list_to_binary(rfc4627:encode(RJO)),
 			?DEBUG("GROUP ::::> J4B=~p",[J4B]),
 			RBody = [{xmlelement,"body",[],[{xmlcdata,J4B}]}],
-			RPacket = {X,E,RAttr1,RBody},
+			RPacket = {X,E,RAttr2,RBody},
 
 			?DEBUG("###### route_group_msg 003 input :::> {From,To,RPacket}=~p",[{From,To,RPacket}]),
 			case ejabberd_router:route(From, To, RPacket) of
