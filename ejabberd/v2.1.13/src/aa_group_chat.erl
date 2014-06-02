@@ -42,14 +42,14 @@ init([]) ->
 
 handle_call({route_group_msg,#jid{server=Domain}=From,#jid{user=GroupId}=To,Packet}, _From, State) ->
 	case get_user_list_by_group_id(Domain,GroupId) of 
-		{ok,UserList,Groupmember} ->
+		{ok,UserList,Groupmember,Groupname} ->
 			%% -record(jid, {user, server, resource, luser, lserver, lresource}).
 			Roster = lists:map(fun(User)-> 
 				UID = binary_to_list(User),
 				#jid{user=UID,server=Domain,luser=UID,lserver=Domain,resource=[],lresource=[]} 
 			end,UserList),
 			?DEBUG("###### route_group_msg 002 :::> GroupId=~p ; Roster=~p",[GroupId,Roster]),
-			lists:foreach(fun(Target)-> route_msg(From,Target,Packet,GroupId,Groupmember) end,Roster);
+			lists:foreach(fun(Target)-> route_msg(From,Target,Packet,GroupId,Groupmember,Groupname) end,Roster);
 		Err ->
 			error
 	end,	
@@ -96,7 +96,8 @@ get_user_list_by_group_id(Domain,GroupId)->
 							?DEBUG("###### success=true get_user_list_by_group_id :::> entity=~p",[Entity]),
 							{ok,UserList} = rfc4627:get_field(Entity,"userlist"),
 							{ok,Groupmember} = rfc4627:get_field(Entity,"groupmember"),
-							{ok,UserList,Groupmember};
+							{ok,Groupname} = rfc4627:get_field(Entity,"groupname"),
+							{ok,UserList,Groupmember,Groupname};
 						_ ->
 							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
 							?DEBUG("###### success=false get_user_list_by_group_id :::> entity=~p",[Entity]),
@@ -111,7 +112,7 @@ get_user_list_by_group_id(Domain,GroupId)->
 			{error,Reason}
      	end.
 
-route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,GroupId,Groupmember) ->
+route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,GroupId,Groupmember,Groupname) ->
 	case FromUser=/=User of
 		true->
 			{X,E,Attr,Body} = Packet,
@@ -146,7 +147,8 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 			?DEBUG("GROUP ::::> JSON=~p",[JSON]),
 			{ok,JO,_} = rfc4627:decode(erlang:list_to_binary(JSON)),
 			?DEBUG("GROUP ::::> JO=~p",[JO]),
-			RJO = rfc4627:set_field(JO,"groupmember",Groupmember),
+			J1 = rfc4627:set_field(JO,"groupmember",Groupmember),
+			RJO = rfc4627:set_field(J1,"groupname",Groupname),
 			?DEBUG("GROUP ::::> RJO=~p",[RJO]),
 			J4B = list_to_binary(rfc4627:encode(RJO)),
 			?DEBUG("GROUP ::::> J4B=~p",[J4B]),
