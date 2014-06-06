@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 public class PushApn {
 	
 	private static Logger logger = LoggerFactory.getLogger(PushApn.class);
-	
 	/**
 	 * 单发消息
 	 * @param deviceToken 
@@ -60,13 +59,15 @@ public class PushApn {
 		Push.payload(payLoad, cert , pwd, !debug, threads,devices);
 	}
 	
+	//(String deviceToken,String msg,String pwd,boolean debug,Map<String,String> params) throws Exception {
+
 	public static void main(String[] args) throws Exception {
-//		long s = System.currentTimeMillis();
-//		String token = "263584ada5adcceba50c74b5802103c8cf36c481944cf4a5a2a49a858bb8bec8";
-//		sendMsgApn(token,"OOOOOOOOOOOOOOOO测试-TRUE","110110",true);
-//		System.out.println("OK...");
-//		long e = System.currentTimeMillis();
-//		System.out.println(e-s);
+		long s = System.currentTimeMillis();
+		String token = "588a5c9d98addf7aea3b0dc391bdc0a9c004a9d5bcdf83b095614463859d1079";
+		sendMsgApn(token,"OOOOOOOOOOOOOOOO测试-false","123456",false,null);
+		System.out.println("OK...");
+		long e = System.currentTimeMillis();
+		System.out.println(e-s);
 	}
 	
 }

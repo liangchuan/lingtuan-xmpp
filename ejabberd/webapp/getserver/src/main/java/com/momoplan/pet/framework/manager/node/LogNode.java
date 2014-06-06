@@ -71,6 +71,7 @@ public class LogNode {
 					msg_logger.info(log.toString());
 					// TODO write in cassandra
 				} catch (Exception e) {
+					logger.debug("msg_error", e);
 				}
 			}
 
@@ -109,7 +110,7 @@ public class LogNode {
 								url = Config.publicConfig.get("apns_push_url");
 							}
 							apns_logger.debug(id+"::>url="+url+" ; args="+args);
-							String res = PostRequest.postText(url, args);
+							String res = PostRequest.postText(url, "body",args);
 							apns_logger.debug(id+"::>res="+res);
 							JSONObject result = new JSONObject(res);
 							if(result.getBoolean("success")){
@@ -129,7 +130,7 @@ public class LogNode {
 						}
 					}
 				} catch (Exception e) {
-					
+					logger.debug("apns_error", e);
 				}
 			}
 
@@ -146,6 +147,7 @@ public class LogNode {
 					while (true) {
 						try {
 							OtpErlangObject obj = box.receive();
+							logger.debug("receive = " + obj.toString());
 							msg_log(obj);
 							apns_push(obj);
 						} catch (Exception e) {
