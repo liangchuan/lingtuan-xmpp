@@ -98,7 +98,7 @@ public class LogNode {
 							JSONObject json = new JSONObject();
 							JSONObject params = new JSONObject();
 							params.put("username", to.split("@")[0]);
-							json.put("service", "checktoken");
+							json.put("service", "ejabberd");
 							json.put("method", "getdevicetoken");
 							json.put("sn", id);
 							json.put("params",params);
