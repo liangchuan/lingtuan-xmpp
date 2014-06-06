@@ -18,6 +18,7 @@
 -export([
 	 start_link/0,
 	 offline_message_hook_handler/3,
+	 offline_message_hook_handler/4,
 	 sm_register_connection_hook_handler/3,
 	 sm_remove_connection_hook_handler/3,
 	 user_available_hook_handler/1
@@ -66,15 +67,13 @@ sm_remove_connection_hook_handler(SID, JID, Info) -> ok.
 
 %% 离线消息事件
 %% 保存离线消息
-offline_message_hook_handler(#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet) ->
-	%% {apns_push:atom,jid:string,id:string,msgtype:string,msg:string}
-
+offline_message_hook_handler(save,#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet) ->
 	Type = xml:get_tag_attr_s("type", Packet),
 	ID = xml:get_tag_attr_s("id", Packet),
 	IS_GROUP = aa_group_chat:is_group_chat(To),
 	if IS_GROUP==false,FromUser=/="messageack",User=/="messageack",Type=/="error",Type=/="groupchat",Type=/="headline" ->
 		   SYNCID = ID++"@"++Domain,
-		   Time = xml:get_tag_attr_s("msgTime", Packet),
+		   %% Time = xml:get_tag_attr_s("msgTime", Packet),
 		   %% ?INFO_MSG("ERROR++++++++++++++++ Time=~p;~n~nPacket=~p",[Time,Packet]),
 		   %% {ok,TimeStamp} = getTime(Time),
 		   %% TODO 7天以后过期
@@ -85,6 +84,13 @@ offline_message_hook_handler(#jid{user=FromUser}=From, #jid{user=User,server=Dom
 	   true ->
 		   ok
 	end.
+	
+offline_message_hook_handler(#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet) ->
+	offline_message_hook_handler(save,#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet),
+	Log_node = ejabberd_config:get_local_option({log_node,Domain}),
+	apns_push(Packet,Log_node).
+	%% {apns_push:atom,jid:string,id:string,msgtype:string,msg:string}
+
 
 %% ====================================================================
 %% Behavioural functions 
@@ -162,7 +168,7 @@ conn_ecache_node() ->
 			{error,E,I}
 	end.
 
-apns_push(Packet,N)->
+apns_push(Packet,Node)->
 	case Packet of 
 		{xmlelement,"message",Attr,_} -> 
 			D = dict:from_list(Attr),
@@ -172,12 +178,12 @@ apns_push(Packet,N)->
 			MsgType = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); false-> "" end,
 			Msg     = erlang:list_to_binary(aa_log:get_text_message_from_packet(Packet)),
 			Message = {apns_push,ID,From,To,MsgType,Msg},
-			case net_adm:ping(N) of
+			case net_adm:ping(Node) of
 				pang ->
-					?INFO_MSG("write_log ::::> ~p",[Message]),
+					?INFO_MSG("push_apn_by_log ::::> ~p",[Message]),
 					Message;
 				pong ->
-					{logbox,N}!Message
+					{logbox,Node}!Message
 			end;
 		_ ->
 			skip

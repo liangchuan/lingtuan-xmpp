@@ -95,7 +95,7 @@ handle_call({sync_packet,K,From,To,Packet}, _F, #state{ecache_node=Node,ecache_m
         ?DEBUG("==== sync_packet ===> insert K=~p~nV=~p",[K,V]),
         Cmd = ["PSETEX",K,integer_to_list(1000*60*60*24*7),V],
         R = rpc:call(Node,Mod,Fun,[Cmd]),
-        aa_offline_mod:offline_message_hook_handler(From,To,RPacket),
+        aa_offline_mod:offline_message_hook_handler(save,From,To,RPacket),
         {reply, R, State}.
 
 handle_cast({group_chat_filter,From,To,Packet}, State) ->
