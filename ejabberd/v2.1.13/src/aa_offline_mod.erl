@@ -86,9 +86,10 @@ offline_message_hook_handler(save,#jid{user=FromUser}=From, #jid{user=User,serve
 	end.
 	
 offline_message_hook_handler(#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet) ->
-	offline_message_hook_handler(save,#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet),
+	?INFO_MSG("offline_message_hook_handler ==> ",[]),
 	Log_node = ejabberd_config:get_local_option({log_node,Domain}),
-	apns_push(Packet,Log_node).
+	apns_push(Packet,Log_node),
+	offline_message_hook_handler(save,#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet).
 	%% {apns_push:atom,jid:string,id:string,msgtype:string,msg:string}
 
 
@@ -169,6 +170,7 @@ conn_ecache_node() ->
 	end.
 
 apns_push(Packet,Node)->
+	?INFO_MSG("apns_push ::::> Node=~p ; Packet=~p",[Node,Packet]),
 	case Packet of 
 		{xmlelement,"message",Attr,_} -> 
 			D = dict:from_list(Attr),
@@ -180,9 +182,10 @@ apns_push(Packet,Node)->
 			Message = {apns_push,ID,From,To,MsgType,Msg},
 			case net_adm:ping(Node) of
 				pang ->
-					?INFO_MSG("push_apn_by_log ::::> ~p",[Message]),
+					?INFO_MSG("push_apn_by_log_pang ::::> ~p",[Message]),
 					Message;
 				pong ->
+					?INFO_MSG("push_apn_by_log_pong ::::> ~p",[Message]),
 					{logbox,Node}!Message
 			end;
 		_ ->
