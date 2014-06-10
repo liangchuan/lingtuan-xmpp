@@ -140,7 +140,7 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 					_-> {K,V} 
 				end 
 			end,Attr),
-			Mask = case lists:member(User,Masklist) of true -> 1; false-> 0 end,
+			Mask = case lists:member(User,Masklist) of true -> "1"; false-> "0" end,
 			RAttr1 = lists:append(RAttr0,[{"groupid",GroupId}]),
 			RAttr2 = lists:append(RAttr1,[{"mask",Mask}]),
 			RAttr3 = lists:append([X||X<-RAttr2,X=/=skip],[{"msgTime",MsgTime}]),
