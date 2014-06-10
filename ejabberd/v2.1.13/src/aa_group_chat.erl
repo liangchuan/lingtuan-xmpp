@@ -152,7 +152,7 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 			?DEBUG("GROUP ::::> JO=~p",[JO]),
 			J1 = rfc4627:set_field(JO,"groupmember",Groupmember),
 			J2 = rfc4627:set_field(J1,"groupname",Groupname),
-			RJ0 = rfc4627:set_field(J2,"mask",Mask),
+			RJ0 = rfc4627:set_field(J2,"mask",list_to_binary(Mask)),
 			?DEBUG("GROUP ::::> RJ0=~p",[RJ0]),
 			J4B = list_to_binary(rfc4627:encode(RJ0)),
 			?DEBUG("GROUP ::::> J4B=~p",[J4B]),
