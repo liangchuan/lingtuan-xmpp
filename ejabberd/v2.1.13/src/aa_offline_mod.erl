@@ -178,16 +178,30 @@ apns_push(Packet,Node)->
 			From    = case dict:is_key("from",D) of true-> dict:fetch("from",D); false-> "" end,
 			To      = case dict:is_key("to",D) of true-> dict:fetch("to",D); false-> "" end,
 			MsgType = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); false-> "" end,
+			Mask = case dict:is_key("mask",D) of true-> dict:fetch("mask",D); false-> 0 end,
 			Msg     = erlang:list_to_binary(aa_log:get_text_message_from_packet(Packet)),
 			Message = {apns_push,ID,From,To,MsgType,Msg},
-			case net_adm:ping(Node) of
-				pang ->
-					?INFO_MSG("push_apn_by_log_pang ::::> ~p",[Message]),
-					Message;
-				pong ->
-					?INFO_MSG("push_apn_by_log_pong ::::> ~p",[Message]),
-					{logbox,Node}!Message
+			case MsgType of
+				"msgStatus" ->
+					?DEBUG("apns_push_skip msgtype=msgStatus ; id=~p",[ID]),
+					skip;
+				_ ->
+					case Mask of
+						0 ->
+							case net_adm:ping(Node) of
+								pang ->
+									?INFO_MSG("push_apn_by_log_pang ::::> ~p",[Message]),
+									Message;
+								pong ->
+									?INFO_MSG("push_apn_by_log_pong ::::> ~p",[Message]),
+									{logbox,Node}!Message
+							end;
+						_ ->
+							?DEBUG("apns_push_skip mask=1 ; id=~p",[ID]),
+							skip
+					end
 			end;
 		_ ->
+			?DEBUG("apns_push_skip not_message",[]),
 			skip
 	end.

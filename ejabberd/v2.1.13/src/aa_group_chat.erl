@@ -42,14 +42,14 @@ init([]) ->
 
 handle_call({route_group_msg,#jid{server=Domain}=From,#jid{user=GroupId}=To,Packet}, _From, State) ->
 	case get_user_list_by_group_id(Domain,GroupId) of 
-		{ok,UserList,Groupmember,Groupname} ->
+		{ok,UserList,Groupmember,Groupname,Masklist} ->
 			%% -record(jid, {user, server, resource, luser, lserver, lresource}).
 			Roster = lists:map(fun(User)-> 
 				UID = binary_to_list(User),
 				#jid{user=UID,server=Domain,luser=UID,lserver=Domain,resource=[],lresource=[]} 
 			end,UserList),
 			?DEBUG("###### route_group_msg 002 :::> GroupId=~p ; Roster=~p",[GroupId,Roster]),
-			lists:foreach(fun(Target)-> route_msg(From,Target,Packet,GroupId,Groupmember,Groupname) end,Roster);
+			lists:foreach(fun(Target)-> route_msg(From,Target,Packet,GroupId,Groupmember,Groupname,Masklist) end,Roster);
 		Err ->
 			error
 	end,	
@@ -96,8 +96,9 @@ get_user_list_by_group_id(Domain,GroupId)->
 							?DEBUG("###### success=true get_user_list_by_group_id :::> entity=~p",[Entity]),
 							{ok,UserList} = rfc4627:get_field(Entity,"userlist"),
 							{ok,Groupmember} = rfc4627:get_field(Entity,"groupmember"),
+							{ok,Masklist} = rfc4627:get_field(Entity,"masklist"),
 							{ok,Groupname} = rfc4627:get_field(Entity,"groupname"),
-							{ok,UserList,Groupmember,Groupname};
+							{ok,UserList,Groupmember,Groupname,Masklist};
 						_ ->
 							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
 							?DEBUG("###### success=false get_user_list_by_group_id :::> entity=~p",[Entity]),
@@ -112,7 +113,7 @@ get_user_list_by_group_id(Domain,GroupId)->
 			{error,Reason}
      	end.
 
-route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,GroupId,Groupmember,Groupname) ->
+route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,GroupId,Groupmember,Groupname,Masklist) ->
 	case FromUser=/=User of
 		true->
 			{X,E,Attr,Body} = Packet,
@@ -139,8 +140,10 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 					_-> {K,V} 
 				end 
 			end,Attr),
+			Mask = case lists:member(User,Masklist) of true -> 1; false-> 0 end,
 			RAttr1 = lists:append(RAttr0,[{"groupid",GroupId}]),
-			RAttr2 = lists:append([X||X<-RAttr1,X=/=skip],[{"msgTime",MsgTime}]),
+			RAttr2 = lists:append(RAttr1,[{"mask",Mask}]),
+			RAttr3 = lists:append([X||X<-RAttr2,X=/=skip],[{"msgTime",MsgTime}]),
 
 			%% TODO Groupmember
 			[JSON] = aa_log:get_text_message_from_packet(Packet),	
@@ -148,12 +151,13 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 			{ok,JO,_} = rfc4627:decode(erlang:list_to_binary(JSON)),
 			?DEBUG("GROUP ::::> JO=~p",[JO]),
 			J1 = rfc4627:set_field(JO,"groupmember",Groupmember),
-			RJO = rfc4627:set_field(J1,"groupname",Groupname),
-			?DEBUG("GROUP ::::> RJO=~p",[RJO]),
-			J4B = list_to_binary(rfc4627:encode(RJO)),
+			J2 = rfc4627:set_field(J1,"groupname",Groupname),
+			RJ0 = rfc4627:set_field(J2,"mask",Mask),
+			?DEBUG("GROUP ::::> RJ0=~p",[RJ0]),
+			J4B = list_to_binary(rfc4627:encode(RJ0)),
 			?DEBUG("GROUP ::::> J4B=~p",[J4B]),
 			RBody = [{xmlelement,"body",[],[{xmlcdata,J4B}]}],
-			RPacket = {X,E,RAttr2,RBody},
+			RPacket = {X,E,RAttr3,RBody},
 
 			?DEBUG("###### route_group_msg 003 input :::> {From,To,RPacket}=~p",[{From,To,RPacket}]),
 			case ejabberd_router:route(From, To, RPacket) of
