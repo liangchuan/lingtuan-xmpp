@@ -117,7 +117,7 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 	case FromUser=/=User of
 		true->
 			{X,E,Attr,Body} = Packet,
-			?DEBUG("##### route_group_msg_003 param :::> {User,Domain,GroupId}=~p",[{User,Domain,GroupId}]),
+			?DEBUG("##### route_group_msg_003 param :::> {User,Domain,GroupId,Masklist}=~p",[{User,Domain,GroupId,Masklist}]),
        		D = dict:from_list(Attr),
 			{M,S,SS} = now(),
 			MsgTime = lists:sublist(erlang:integer_to_list(M*1000000000000+S*1000000+SS),1,13),
@@ -140,7 +140,7 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 					_-> {K,V} 
 				end 
 			end,Attr),
-			Mask = case lists:member(User,Masklist) of true -> "1"; false-> "0" end,
+			Mask = case lists:member(list_to_binary(User),Masklist) of true -> "1"; false-> "0" end,
 			RAttr1 = lists:append(RAttr0,[{"groupid",GroupId}]),
 			RAttr2 = lists:append(RAttr1,[{"mask",Mask}]),
 			RAttr3 = lists:append([X||X<-RAttr2,X=/=skip],[{"msgTime",MsgTime}]),
