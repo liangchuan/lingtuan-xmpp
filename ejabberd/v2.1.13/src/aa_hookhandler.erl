@@ -5,7 +5,7 @@
 -include("jlib.hrl").
 
 -define(HTTP_HEAD,"application/x-www-form-urlencoded").
--define(TIME_OUT,1000*5).
+-define(TIME_OUT,1000*15).
 
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
