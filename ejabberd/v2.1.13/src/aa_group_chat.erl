@@ -40,17 +40,92 @@ route_group_msg(From,To,Packet)->
 init([]) ->
 	{ok,#state{}}.
 
-handle_call({route_group_msg,#jid{server=Domain}=From,#jid{user=GroupId}=To,Packet}, _From, State) ->
+handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=GroupId,server=GDomain}=To,Packet}, _From, State) ->
 	case get_user_list_by_group_id(Domain,GroupId) of 
 		{ok,UserList,Groupmember,Groupname,Masklist} ->
-			%% -record(jid, {user, server, resource, luser, lserver, lresource}).
-			Roster = lists:map(fun(User)-> 
-				UID = binary_to_list(User),
-				#jid{user=UID,server=Domain,luser=UID,lserver=Domain,resource=[],lresource=[]} 
-			end,UserList),
-			?DEBUG("###### route_group_msg 002 :::> GroupId=~p ; Roster=~p",[GroupId,Roster]),
-			lists:foreach(fun(Target)-> route_msg(From,Target,Packet,GroupId,Groupmember,Groupname,Masklist) end,Roster);
+			case UserList of 
+				[] ->
+					%%TODO 解散了
+					%% <message id="xxxxx" from="yy@group.yuejian.net" to="123456@yuejian.net" type="normal" msgtype=“system”>
+					%%	<body>{groupid":"xx","groupname":"",groupmember":[],"type":"15"}</body>
+					%% </message>
+					{X,E,Attr,_} = Packet,
+					RAttr = lists:map(fun({K,_})->
+						case K of
+							"from" ->
+								{K,GroupId++"@"++GDomain};
+							"to" ->
+								{K,FromUser++"@"++Domain};
+							"type" ->
+								{K,"normal"};
+							"msgtype" ->
+								{K,"system"}	
+						end
+					end,Attr),
+					{ok,J0,_} = rfc4627:decode("{}"),
+					J1 = rfc4627:set_field(J0,"groupid",list_to_binary(GroupId)),
+					J2 = rfc4627:set_field(J1,"groupname",<<"">>),
+					J3 = rfc4627:set_field(J2,"groupmember",[]),
+					J4 = rfc4627:set_field(J3,"type",<<"15">>),
+					Json = rfc4627:encode(J4),
+					Body = [{xmlelement,"body",[],[{xmlcdata,Json}]}],
+					RPacket = {X,E,RAttr,Body},
+					case ejabberd_router:route(To,From,RPacket) of
+						ok ->
+							?DEBUG("###### route_group_type15 OK :::> {From,To,RPacket}=~p",[{To,From,RPacket}]),
+							gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
+							{ok,ok};
+						Err ->
+							?DEBUG("###### route_group_type15 ERR=~p :::> {From,To,RPacket}=~p",[Err,{To,From,RPacket}]),
+							{error,Err}
+					end;
+				_ ->
+					case lists:member(list_to_binary(FromUser),UserList) of
+						false ->
+							%%TODO 被T了
+							%% <message id="xxxxx" from="1@yuejian.net" to"yy@yuejian.net" type="normal" msgtype=“system”>
+							%% 	     <body>{groupid":"xx","groupname":"...","groupmember":[...],"type":"14"}</body>
+ 							%% </message>
+							{X,E,Attr,_} = Packet,
+							RAttr = lists:map(fun({K,V})->
+								case K of
+									"from" ->
+										{K,GroupId++"@"++GDomain};
+									"to" ->
+										{K,FromUser++"@"++Domain};
+									"type" ->
+										{K,"normal"};
+									"msgtype" ->
+										{K,"system"}	
+								end
+							end,Attr),
+							{ok,J0,_} = rfc4627:decode("{}"),
+							J1 = rfc4627:set_field(J0,"groupid",list_to_binary(GroupId)),
+							J2 = rfc4627:set_field(J1,"groupname",Groupname),
+							J3 = rfc4627:set_field(J2,"groupmember",Groupmember),
+							J4 = rfc4627:set_field(J3,"type",<<"14">>),
+							Json = rfc4627:encode(J4),
+							Body = [{xmlelement,"body",[],[{xmlcdata,Json}]}],
+							RPacket = {X,E,RAttr,Body},
+							case ejabberd_router:route(To,From,RPacket) of
+								ok ->
+									?DEBUG("route_group_type14 OK :::> {From,To,RPacket}=~p",[{To,From,RPacket}]),
+									gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false});
+								Err ->
+									?DEBUG("route_group_type14 ERR=~p :::> {From,To,RPacket}=~p",[Err,{To,From,RPacket}]) 
+							end;
+						true ->	
+							%% -record(jid, {user, server, resource, luser, lserver, lresource}).
+							Roster = lists:map(fun(User)-> 
+								UID = binary_to_list(User),
+								#jid{user=UID,server=Domain,luser=UID,lserver=Domain,resource=[],lresource=[]} 
+							end,UserList),
+							?DEBUG("###### route_group_msg 002 :::> GroupId=~p ; Roster=~p",[GroupId,Roster]),
+							lists:foreach(fun(Target)-> route_msg(From,Target,Packet,GroupId,Groupmember,Groupname,Masklist) end,Roster) 
+					end
+			end;
 		Err ->
+			?ERROR_MSG("group_msg_error ~p",Err),
 			error
 	end,	
 	{reply,[],State}.
@@ -58,12 +133,12 @@ handle_call({route_group_msg,#jid{server=Domain}=From,#jid{user=GroupId}=To,Pack
 handle_cast(stop, State) ->
 	{stop, normal, State}.
 
-handle_info({cmd,Args},State)->
+handle_info({cmd,_Args},State)->
 	{noreply,State}.
 
-terminate(Reason, State) ->
+terminate(_Reason,_State) ->
     ok.
-code_change(OldVsn, State, Extra) ->
+code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %% ====================================================================
@@ -92,13 +167,22 @@ get_user_list_by_group_id(Domain,GroupId)->
  				{ok,Obj,_Re} -> 
 					case rfc4627:get_field(Obj,"success") of
 						{ok,true} ->
-							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
-							?DEBUG("###### success=true get_user_list_by_group_id :::> entity=~p",[Entity]),
-							{ok,UserList} = rfc4627:get_field(Entity,"userlist"),
-							{ok,Groupmember} = rfc4627:get_field(Entity,"groupmember"),
-							{ok,Masklist} = rfc4627:get_field(Entity,"masklist"),
-							{ok,Groupname} = rfc4627:get_field(Entity,"groupname"),
-							{ok,UserList,Groupmember,Groupname,Masklist};
+							case rfc4627:get_field(Obj,"entity") of
+								{ok,Entity} ->
+									?DEBUG("###### success=true get_user_list_by_group_id :::> entity=~p",[Entity]),
+									try
+										{ok,UserList} = rfc4627:get_field(Entity,"userlist"),
+										{ok,Groupmember} = rfc4627:get_field(Entity,"groupmember"),
+										{ok,Masklist} = rfc4627:get_field(Entity,"masklist"),
+										{ok,Groupname} = rfc4627:get_field(Entity,"groupname"),
+										{ok,UserList,Groupmember,Groupname,Masklist}
+									catch
+										_:_->
+											{ok,[],[],[],[]}
+									end;
+								_ ->
+									{ok,[],[],[],[]}
+							end;
 						_ ->
 							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
 							?DEBUG("###### success=false get_user_list_by_group_id :::> entity=~p",[Entity]),
