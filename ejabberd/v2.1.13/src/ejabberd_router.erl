@@ -383,13 +383,21 @@ do_route(OrigFrom, OrigTo, OrigPacket) ->
 			    R = lists:nth(erlang:phash(Value, length(SRs)), SRs),
 			    Pid = R#route.pid,
     			?DEBUG("do_route_rs_send_pid_003_param=~p", [{SRs,R,Pid,is_pid(Pid)}]),
-			    if
-				is_pid(Pid) ->
+			    if is_pid(Pid) ->
     				?DEBUG("do_route_rs_send_pid_003=~p ; packet=~p", [R,Packet]),
 				    Pid ! {route, From, To, Packet};
 				true ->
-    				?DEBUG("do_route_rs_send_pid_003_drop=~p ; packet=~p", [R,Packet]),
-				    drop
+					%% 这里为什么会出现取不到值的 hash 值呢？？？
+    				?DEBUG("do_route_rs_send_pid_003_system_drop=~p ; packet=~p", [R,Packet]),
+			    	R2 = lists:nth(2, SRs),
+			    	Pid2 = R2#route.pid,
+			    	if is_pid(Pid2) ->
+    					?DEBUG("do_route_rs_send_pid_003=~p ; packet=~p", [R,Packet]),
+					    Pid2! {route, From, To, Packet};
+					true ->
+    					?DEBUG("do_route_rs_send_pid_003_realy_drop=~p ; packet=~p", [R2,Packet]),
+				    	drop
+					end
 			    end
 		    end
 	    end;
