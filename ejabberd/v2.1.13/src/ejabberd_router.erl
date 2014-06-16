@@ -352,7 +352,8 @@ do_route(OrigFrom, OrigTo, OrigPacket) ->
 				    jlib:jid_remove_resource(
 				      jlib:jid_tolower(To))
 			    end,
-    		?DEBUG("do_route_rs=~p ; Value=~p", [Rs,Value]),
+		    Number = get_component_number(LDstDomain),
+    		?DEBUG("do_route_rs=~p ; Value=~p ; get_component_number=~p", [Rs,Value,Number]),
 		    case get_component_number(LDstDomain) of
 			undefined ->
 			    case [R || R <- Rs, node(R#route.pid) == node()] of
@@ -406,8 +407,7 @@ do_route(OrigFrom, OrigTo, OrigPacket) ->
     end.
 
 get_component_number(LDomain) ->
-    case ejabberd_config:get_local_option(
-	   {domain_balancing_component_number, LDomain}) of
+    case ejabberd_config:get_local_option({domain_balancing_component_number, LDomain}) of
 	N when is_integer(N),
 	       N > 1 ->
 	    N;
