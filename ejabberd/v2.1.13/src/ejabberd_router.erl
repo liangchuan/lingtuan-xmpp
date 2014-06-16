@@ -382,11 +382,13 @@ do_route(OrigFrom, OrigTo, OrigPacket) ->
 			    SRs = lists:ukeysort(#route.local_hint, Rs),
 			    R = lists:nth(erlang:phash(Value, length(SRs)), SRs),
 			    Pid = R#route.pid,
+    			?DEBUG("do_route_rs_send_pid_003_param=~p", [{SRs,R,Pid,is_pid(Pid)}]),
 			    if
 				is_pid(Pid) ->
     				?DEBUG("do_route_rs_send_pid_003=~p ; packet=~p", [R,Packet]),
 				    Pid ! {route, From, To, Packet};
 				true ->
+    				?DEBUG("do_route_rs_send_pid_003_drop=~p ; packet=~p", [R,Packet]),
 				    drop
 			    end
 		    end
