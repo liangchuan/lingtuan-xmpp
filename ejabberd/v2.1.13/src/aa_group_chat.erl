@@ -50,7 +50,7 @@ handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=Gr
 					%%	<body>{groupid":"xx","groupname":"",groupmember":[],"type":"15"}</body>
 					%% </message>
 					{X,E,Attr,_} = Packet,
-					RAttr = lists:map(fun({K,_})->
+					RAttr = lists:map(fun({K,V})->
 						case K of
 							"from" ->
 								{K,GroupId++"@"++GDomain};
@@ -59,7 +59,9 @@ handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=Gr
 							"type" ->
 								{K,"normal"};
 							"msgtype" ->
-								{K,"system"}	
+								{K,"system"};	
+							_ ->
+								{K,V}	
 						end
 					end,Attr),
 					{ok,J0,_} = rfc4627:decode("{}"),
@@ -96,7 +98,9 @@ handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=Gr
 									"type" ->
 										{K,"normal"};
 									"msgtype" ->
-										{K,"system"}	
+										{K,"system"};
+									_ ->
+										{K,V}	
 								end
 							end,Attr),
 							{ok,J0,_} = rfc4627:decode("{}"),
