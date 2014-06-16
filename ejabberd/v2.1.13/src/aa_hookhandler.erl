@@ -25,30 +25,36 @@ start_link() ->
 
 %user_send_packet(From, To, Packet) -> ok
 user_send_packet_handler(#jid{user=FUser,server=FDomain}=From, #jid{user=TUser,server=TDomain}=To, Packet) ->
-    case Packet of 
-    	{_,"message",Attr,_} ->
-		    D = dict:from_list(Attr),
-		    MT = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); _-> "" end,
-			case MT of
-				"msgStatus" ->
-					gen_server:cast(?MODULE,{group_chat_filter,From,To,Packet}),
-					gen_server:cast(aa_log,{store,Packet});
-				_ ->
-					?INFO_MSG("###### my_hookhandler ::::> user_send_packet_handler ~p",[liangchuan_debug]),
-					BlacklistKey = {list_to_binary(FUser++"@"++FDomain),list_to_binary(TUser++"@"++TDomain)}, 
-					?DEBUG("BlacklistKey=~p",[BlacklistKey]),
-					case length(mnesia:dirty_read(blacklist,BlacklistKey)) of
-						0 ->
-							gen_server:cast(?MODULE,{group_chat_filter,From,To,Packet}),
-							gen_server:cast(aa_log,{store,Packet});
-						_ ->
-							gen_server:cast(?MODULE,{server_ack,From,To,Packet}),
-							MSG_ID = xml:get_tag_attr_s("id", Packet),
-							?INFO_MSG("discard_message ::> Blacklist_key=~p ; MSG_ID=~p",[BlacklistKey,MSG_ID])
-					end 
-			end;
-		_ ->
-			skip
+	try
+	    case Packet of 
+	    	{_,"message",Attr,_} ->
+			    D = dict:from_list(Attr),
+			    MT = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); _-> "" end,
+				case MT of
+					"msgStatus" ->
+						gen_server:cast(?MODULE,{group_chat_filter,From,To,Packet}),
+						gen_server:cast(aa_log,{store,Packet});
+					_ ->
+						?INFO_MSG("###### my_hookhandler ::::> user_send_packet_handler ~p",[liangchuan_debug]),
+						BlacklistKey = {list_to_binary(FUser++"@"++FDomain),list_to_binary(TUser++"@"++TDomain)}, 
+						?DEBUG("BlacklistKey=~p",[BlacklistKey]),
+						case length(mnesia:dirty_read(blacklist,BlacklistKey)) of
+							0 ->
+								gen_server:cast(?MODULE,{group_chat_filter,From,To,Packet}),
+								gen_server:cast(aa_log,{store,Packet});
+							_ ->
+								gen_server:cast(?MODULE,{server_ack,From,To,Packet}),
+								MSG_ID = xml:get_tag_attr_s("id", Packet),
+								?INFO_MSG("discard_message ::> Blacklist_key=~p ; MSG_ID=~p",[BlacklistKey,MSG_ID])
+						end 
+				end;
+			_ ->
+				skip
+		end 
+	catch 
+		_:_->
+			Err = erlang:get_stacktrace(),
+			?ERROR_MSG("user_send_packet_handler_error ~p",[Err])
 	end,
 	ok.
 	
