@@ -310,10 +310,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 do_route(OrigFrom, OrigTo, OrigPacket) ->
-    ?DEBUG("route~n\tfrom ~p~n\tto ~p~n\tpacket ~p~n",
-	   [OrigFrom, OrigTo, OrigPacket]),
-    case ejabberd_hooks:run_fold(filter_packet,
-				 {OrigFrom, OrigTo, OrigPacket}, []) of
+    ?DEBUG("route~n\tfrom ~p~n\tto ~p~n\tpacket ~p~n", [OrigFrom, OrigTo, OrigPacket]),
+    HookRes = ejabberd_hooks:run_fold(filter_packet, {OrigFrom, OrigTo, OrigPacket}, []), 
+    ?DEBUG("do_route_hook_res hookRes=~p ; packet=~p", [HookRes,OrigPacket]),
+    case HookRes of
 	{From, To, Packet} ->
 	    LDstDomain = To#jid.lserver,
 	    case mnesia:dirty_read(route, LDstDomain) of
