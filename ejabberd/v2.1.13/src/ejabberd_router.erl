@@ -352,6 +352,7 @@ do_route(OrigFrom, OrigTo, OrigPacket) ->
 				    jlib:jid_remove_resource(
 				      jlib:jid_tolower(To))
 			    end,
+    		?DEBUG("do_route_rs=~p ; Value=~p", [Rs,Value]),
 		    case get_component_number(LDstDomain) of
 			undefined ->
 			    case [R || R <- Rs, node(R#route.pid) == node()] of
@@ -360,6 +361,7 @@ do_route(OrigFrom, OrigTo, OrigPacket) ->
 				    Pid = R#route.pid,
 				    if
 					is_pid(Pid) ->
+    					?DEBUG("do_route_rs_send_pid_000=~p ; packet=~p", [R,Packet]),
 					    Pid ! {route, From, To, Packet};
 					true ->
 					    drop
@@ -369,8 +371,10 @@ do_route(OrigFrom, OrigTo, OrigPacket) ->
 				    Pid = R#route.pid,
 				    case R#route.local_hint of
 					{apply, Module, Function} ->
+    					?DEBUG("do_route_rs_send_loc Module=~p ; Function=~p ; packet=~p", [Module,Function,Packet]),
 					    Module:Function(From, To, Packet);
 					_ ->
+    					?DEBUG("do_route_rs_send_pid_002=~p ; packet=~p", [R,Packet]),
 					    Pid ! {route, From, To, Packet}
 				    end
 			    end;
@@ -380,6 +384,7 @@ do_route(OrigFrom, OrigTo, OrigPacket) ->
 			    Pid = R#route.pid,
 			    if
 				is_pid(Pid) ->
+    				?DEBUG("do_route_rs_send_pid_003=~p ; packet=~p", [R,Packet]),
 				    Pid ! {route, From, To, Packet};
 				true ->
 				    drop
