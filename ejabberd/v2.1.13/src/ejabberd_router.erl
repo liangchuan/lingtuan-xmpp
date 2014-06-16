@@ -325,16 +325,20 @@ do_route(OrigFrom, OrigTo, OrigPacket) ->
 			node(Pid) == node() ->
 			    case R#route.local_hint of
 				{apply, Module, Function} ->
+    				?DEBUG("do_route_loc_send Module=~p ; Function=~p ; packet=~p", [Module,Function,OrigPacket]),
 				    Module:Function(From, To, Packet);
 				_ ->
+    				?DEBUG("do_route_pid_send_000 R=~p ; packet=~p", [R,OrigPacket]),
 				    Pid ! {route, From, To, Packet}
 			    end;
 			is_pid(Pid) ->
+    			?DEBUG("do_route_pid_send_001 R=~p ; packet=~p", [R,OrigPacket]),
 			    Pid ! {route, From, To, Packet};
 			true ->
 			    drop
 		    end;
 		Rs ->
+    		?DEBUG("do_route_rs=~p ; packet=~p", [Rs,OrigPacket]),
 		    Value = case ejabberd_config:get_local_option(
 				   {domain_balancing, LDstDomain}) of
 				undefined -> now();
