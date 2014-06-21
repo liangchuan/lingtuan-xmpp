@@ -63,8 +63,10 @@ public class PushApn {
 
 	public static void main(String[] args) throws Exception {
 		long s = System.currentTimeMillis();
-		String token = "588a5c9d98addf7aea3b0dc391bdc0a9c004a9d5bcdf83b095614463859d1079";
-		sendMsgApn(token,"OOOOOOOOOOOOOOOO测试-false","123456",false,null);
+		//String token = "588a5c9d98addf7aea3b0dc391bdc0a9c004a9d5bcdf83b095614463859d1079";
+		String token = "5b28508f7a4eb3f831fdc1ac24d0f758bac6784f6273a1fb4af8fce296473bdd";
+		sendMsgApn(token,"aaaaaaaaa","123456",true,null);
+		sendMsgApn(token,"bbbbbbbbb","123456",false,null);
 		System.out.println("OK...");
 		long e = System.currentTimeMillis();
 		System.out.println(e-s);

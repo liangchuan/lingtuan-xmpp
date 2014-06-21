@@ -8,6 +8,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.zookeeper.KeeperException;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,7 +123,16 @@ public class LogNode {
 									map.put("to", to);
 									map.put("msgtype", msgtype);
 									apns_logger.debug(id+"::>push="+msg+" ; map="+map);
-									PushApn.sendMsgApn(deviceToken, msg, "123456", isDebug(id), map);
+									try{
+										String resmsg = build_push_msg(msgtype,msg);
+										apns_logger.debug(id+"::>push="+msg+" ; map="+map+ " ; resmsg="+resmsg);
+										if(resmsg!=null){
+											PushApn.sendMsgApn(deviceToken, resmsg, "123456", isDebug(id), map);
+										}
+									}catch(Exception err){
+										apns_logger.error(id,err);
+										err.printStackTrace();
+									}
 								}
 							}
 						}catch(Exception e){
@@ -171,5 +181,290 @@ public class LogNode {
 			e.printStackTrace();
 		}
 		return debug;
+	}
+	
+	public static void main(String[] args) throws JSONException {
+		JSONObject json = new JSONObject("abc");
+		boolean is_group = json.has("groupid");
+		
+		System.out.println(is_group);
+	}
+	private String build_push_msg(String msgtype ,String jmsg) throws Exception{
+		JSONObject json = new JSONObject(jmsg);
+		String type = json.getString("type");
+		if("normalchat".equalsIgnoreCase(msgtype)){
+//			1.单人聊天信息:         
+			if("0".equals(type)){
+//			 <1>文本消息： ------------------logo+约你妹  用户昵称：最新聊天的语言（最多显示61个汉字）
+//		     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+//		     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"0","content":"hello！"}
+//		     </body>
+//		     </message>
+				String username = json.getString("username");
+				String content = json.getString("content");
+				if(content!=null && content.length()>40){
+					content = content.substring(0, 40)+"...";
+				}
+				return username+":"+content;
+			}else if("1".equals(type)){
+//				  <2>图片消息：缩略图=cover------------------logo+约你妹  用户昵称发来一张图片
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"1","content":"url","cover":"base64编码图片"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"发来一张图片";
+			}else if("2".equals(type)){
+//				  <3>语音消息：amr格式------------------logo+约你妹  用户昵称发来一段语音
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"2","content":"url","second":"60"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"发来一段语音";
+//			}else if("3".equals(type)){
+//				  <4>gif动画消息：------------------logo+约你妹  用户昵称：gift识别出来的文字（暂无）
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"3","content":"url"}
+//			     </body>
+//			     </message>
+				
+			}else if("4".equals(type)){
+//				  <5>位置消息：------------------  logo+约你妹  用户昵称：【我的位置】
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"4","lon":"39.000","lat":"139.000"}</body> 高德坐标
+//			     </message>
+				String username = json.getString("username");
+				return username+"【我的位置】";
+			}else if("5".equals(type)){
+//				  <6>场景消息：------------------  logo+约你妹  用户昵称发来了约会场景
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"5","name":"商家名称","address":"商家地址","image":"url","id":"场景id，产品详情页的id"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"发来了约会场景";
+			}else if("6".equals(type)){
+//				<7>名片消息：------------------  logo+约你妹  用户昵称发来了XXX的名片  
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"6","name":"名片人的用户名","image":"url","id":"用户id",“sign”:"签名"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				String name = json.getString("name");
+				return username+"发来了"+name+"的名片";
+			}
+		}else if("groupchat".equalsIgnoreCase(msgtype)){
+//			2.多人会话聊天信息：groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）
+			if("0".equals(type)){
+//				  <1>文本消息：------------------  logo+约你妹   用户昵称：最新聊天的语言（最多显示61个汉字）
+//			     <message id="xxxxx" from="xx@test.com" to="yy@group.test.com" type="chat" msgtype=“groupchat”>
+//			     <body>{"groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"0","content":"hello！"}</body>
+//			     </message>
+				String username = json.getString("username");
+				String content = json.getString("content");
+				if(content!=null && content.length()>40){
+					content = content.substring(0, 40)+"...";
+				}
+				return username+":"+content;
+			}else if("1".equals(type)){
+//				  <2>图片消息：------------------logo+约你妹  用户昵称发来一张图片
+//			     <message id="xxxxx" from="xx@test.com" to="yy@group.test.com" type="chat" msgtype=“groupchat”>
+//			     <body>{"groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"1","content":"url","cover":"base64编码图片"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"发来一张图片";
+			}else if("2".equals(type)){
+//				  <3>语音消息：------------------logo+约你妹  用户昵称发来一段语音
+//			     <message id="xxxxx" from="xx@test.com" to="yy@group.test.com" type="chat" msgtype=“groupchat”>
+//			     <body>{"groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"2","content":"url","second":"60"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"发来一段语音";
+//			}else if("3".equals(type)){
+//				  <4>gif动画消息：------------------logo+约你妹  用户昵称：gift识别出来的文字
+//			     <message id="xxxxx" from="xx@test.com" to="yy@group.test.com" type="chat" msgtype=“groupchat”>
+//			     <body>{"groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"3","content":"url"}
+//			     </body>
+//			     </message>
+			}else if("4".equals(type)){
+//				  <5>位置消息：------------------  logo+约你妹  用户昵称：【我的位置】
+//			     <message id="xxxxx" from="xx@test.com" to="yy@group.test.com" type="chat" msgtype=“groupchat”>
+//			     <body>{"groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"4","lon":"39.000","lat":"139.000"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"【我的位置】";
+			}else if("5".equals(type)){
+//				  <6>场景消息：------------------  logo+约你妹  用户昵称发来了约会场景
+//			     <message id="xxxxx" from="xx@test.com" to="yy@group.test.com" type="chat" msgtype=“groupchat”>
+//			     <body>{"groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"5","name":"商家名称","address":"商家地址","image":"url","id":"场景id"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"发来了约会场景";
+			}else if("6".equals(type)){
+//				<7>名片消息：------------------  logo+约你妹  用户昵称发来了XXX的名片
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“groupchat”>
+//			     <body>{"groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"6","name":"名片人的用户名","image":"url","id":"用户id",“sign”:"签名"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				String name = json.getString("name");
+				return username+"发来了"+name+"的名片";
+			}
+		}else if("system".equalsIgnoreCase(msgtype)){
+//			（3）.约你妹系统消息定义?
+			if("-1".equals(type)){
+				//			1.系统消息:------------------  logo+约你妹  该账号已经在xxx机子上登陆，您被强迫下线
+//			     <0>下线消息（ejabber不处理)
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com/IMEI" type="normal"  msgtype=“system”>
+//			     <body>{"userid":"system","type":"-1","content":"该账号已经在xxx机子上登陆，您被强迫下线"}
+//			     </body>
+//			     </message>
+				String content = json.getString("content");
+				return content;
+			}else if("0".equals(type)){
+//			     <1>好友请求消息（ejabber不处理)------------------  logo+约你妹  xxx请求你加为好友
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"0"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"请求你加为好友";
+			}else if("1".equals(type)){
+//			     <2>好友请求确认消息（ejabber不处理)------------------  logo+约你妹  xxx已经通过了您的好友请求
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"1"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"已经通过了您的好友请求";
+			}else if("2".equals(type)){
+//			     <3>好友删除消息（ejabber不处理)------------------  不提示
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"2"}
+//			     </body>
+//			     </message>
+			}else if("3".equals(type)){
+//			     <4>邀约请求消息（ejabber需要处理)------------------  logo+约你妹  xxx发来了邀约请求
+//			    <message id="xxxxx" from="xx@test.com" to="0@group.test.com" type="normal" msgtype=“system”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0",
+//			  "type":"3","sort":"种类（吃喝玩乐）","guest":"1",createrid="xx" creatername="张三" createrimage="http://wwww.1.jpg",
+//			  “createrage”:"23","creatergender":"男",creatersightml":"个性签名","message":"邀请语",
+//			  "address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id","toinvitedlist":[”123456","123456","123456"]}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"发来了邀约请求";
+			}else if("4".equals(type)){
+//			     <5>同意邀约请求消息（ejabber不做处理）------------------  logo+约你妹  xxx同意了您的邀约请求
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"4","sort":"种类（吃喝玩乐）","guest":"1",createrid="xx" creatername="张三" createrimage="http://wwww.1.jpg",“createrage”:"23","creatergender":"男",creatersightml":"个性签名","message":"邀请语","address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"同意了您的邀约请求";
+			}else if("5".equals(type)){
+//			     <6>拒绝邀约请求消息（ejabber不做处理）------------------  logo+约你妹  xxx拒绝了您的邀约请求，赶快求个安慰
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"5","sort":"种类（吃喝玩乐）","guest":"1",createrid="xx" creatername="张三" createrimage="http://wwww.1.jpg",“createrage”:"23","creatergender":"男",creatersightml":"个性签名","message":"邀请语","address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"拒绝了您的邀约请求，赶快求个安慰";
+			}else if("6".equals(type)){
+//			     <7>报名活动消息（ejabber不做处理）------------------  logo+约你妹  xxx报名了您发起的活动
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"6","sort":"种类（吃喝玩乐）","guest":"1",createrid="xx" creatername="张三" createrimage="http://wwww.1.jpg",“createrage”:"23","creatergender":"男",creatersightml":"个性签名","message":"邀请语","address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"报名了您发起的活动";
+			}else if("7".equals(type)){
+//			      <8>活动管理者 同意报名用户参加消息（ejabber需要处理）------------------  logo+约你妹  xxx通过了您报名的活动
+//			     <message id="xxxxx" from="xx@test.com" to="0@group.test.com type="normal" msgtype=“system”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"7","sort":"种类（吃喝玩乐）","guest":"1",createrid="xx" creatername="张三" createrimage="http://wwww.1.jpg",“createrage”:"23","creatergender":"男",creatersightml":"个性签名","message":"邀请语","address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id","applylist":[”123456","123456","123456"]}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"通过了您报名的活动";
+			}else if("8".equals(type)){
+//			     <9>活动管理者 拒绝报名用户参加请求消息（ejabber需要处理）------------------  logo+约你妹  xxx拒绝了您报名的活动
+//			     http发送消息格式
+//			     <message id="xxxxx" from="xx@test.com" to="0@group.test.com type="normal" msgtype=“system”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"8","sort":"种类（吃喝玩乐）","guest":"1",createrid="xx" creatername="张三" createrimage="http://wwww.1.jpg",“createrage”:"23","creatergender":"男",creatersightml":"个性签名","message":"邀请语","address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id","applylist":[”123456","123456","123456"]}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"拒绝了您报名的活动";
+			}else if("9".equals(type)){
+//			     <10>肋友（是好友）牵线邀请消息（ejabber不做处理）------------------  logo+约你妹  有人学雷锋为你牵线发起邀约活动
+//                ------------------  logo+约你妹  XXX学雷锋为你牵线发起邀约活动
+//<message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
+//<body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"9","sort":"种类（吃喝玩乐）","guest":"1","message":"邀请语","address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id"}
+//</body>
+//</message>
+				String username = json.getString("username");
+				return username+"学雷锋为你牵线发起邀约活动";
+			}else if("10".equals(type)){
+//			     <11>同意肋友（是好友）牵线邀请消息（ejabber不做处理）
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"10","sort":"种类（吃喝玩乐）","guest":"1","message":"邀请语","address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"同意了您的牵线邀约";
+			}else if("11".equals(type)){
+//			    <12>拒绝肋友（是好友）牵线邀请消息（ejabber不做处理）------------------  logo+约你妹  xxx拒绝了您的牵线邀约
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"11","sort":"种类（吃喝玩乐）","guest":"1","message":"邀请语","address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"拒绝了您的牵线邀约";
+			}else if("12".equals(type)){
+//			     <13>创建加入多人会话消息（ejabber不需要处理）groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）                   ------------------  logo+约你妹  xxx创建了多人对话（消息分发给每一个讨论组人员）
+//			     http发送消息格式
+//			     <message id="xxxxx" from="xx@test.com" to="yy@group.test.com" type="normal" msgtype=“system”>
+//			     <body>{groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"type":"12"}</body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"创建了多人对话";
+			}else if("13".equals(type)){
+//			     <14>邀请某些人加入多人会话消息（ejabber需要处理）groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）------------------  logo+约你妹  xxx邀请您加入xxxx（xxxx为群组名称）
+//			     http发送消息格式
+//			     <message id="xxxxx" from="xx@test.com" to"yy@group.test.com" type="normal" msgtype=“system”>
+//			     <body>{groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"type":"13","grouplist":[”123456","123456","123456"]}</body>
+//			     </message>
+				String username = json.getString("username");
+				String groupname = json.getString("groupname");
+				return username+"邀请您加入"+groupname;
+			}else if("14".equals(type)){
+//			     <15>踢出某个多人会话成员消息（ejabber不需要处理，这里特别注意的是自己退出多人对话（非管理员），不发送xmpp消息）groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）------------------ logo+约你妹  您被管理员踢出xxxx（xxxx为群组名称）
+//			     <message id="xxxxx" from="xx@test.com" to"yy@test.com" type="normal" msgtype=“system”>
+//			     <body>{groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"type":"14"}</body>
+//			     </message>
+				String groupname = json.getString("groupname");
+				return "您被管理员踢出"+groupname;
+			}else if("15".equals(type)){
+//			     <16>解散自己创建的多人会话消息（ejabber需要处理）groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）
+//			     http发送消息格式------------------ logo+约你妹  xxxx已经解散（xxxx为群组名称）
+//			     <message id="xxxxx" from="xx@test.com" to="yy@group.test.com" type="normal" msgtype=“system”>
+//			     <body>{groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"type":"15","grouplist":[”123456","123456","123456"]}</body>
+//			     </message>
+				String groupname = json.getString("groupname");
+				return groupname+"已经解散";
+			}else if("16".equals(type)){
+//			      <17>活动提醒消息（ejabber不做处理）------------------ logo+约你妹  离活动开始还有xxx分钟，赶快准备赴约吧
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
+//			     <body>{"userid":"system","type":"16","sort":"种类（吃喝玩乐）","guest":"1",createrid="xx" creatername="张三" createrimage="http://wwww.1.jpg",“createrage”:"23","creatergender":"男",creatersightml":"个性签名","message":"邀请语","address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id","property":"公开","price":"200",“detail”:"商家描述","image":"商家图片url","invitedlist":[{"image":"邀请用户头像url","id":"123456","gender":"1"},{"image":"邀请用户头像url","id":"123456","gender":"1"}]}
+//			     </body>
+//			     </message>
+			}
+		}
+		return null;
 	}
 }
