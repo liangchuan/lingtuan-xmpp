@@ -149,6 +149,13 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% ====================================================================
 get_user_list_by_group_id(Domain,GroupId)->
+	case GroupId of 
+		"cctest" ->
+			{ok,[<<"cc1">>,<<"cc2">>,<<"cc3">>],[],[],[]};
+		_ ->
+			get_user_list_by_group_id(do,Domain,GroupId)
+	end.
+get_user_list_by_group_id(do,Domain,GroupId)->
 	?DEBUG("###### get_user_list_by_group_id :::> GroupId=~p",[GroupId]),
  	HTTPTarget =  ejabberd_config:get_local_option({http_server,Domain}),
 	{Service,Method,GID,SN} = {
