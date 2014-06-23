@@ -118,9 +118,10 @@ public class LogNode {
 								String deviceToken = result.getString("devicetoken");
 								if(StringUtils.isNotEmpty(deviceToken)){
 									Map<String,String> map = new HashMap<String,String>();
-									map.put("id", id);
-									map.put("from", from);
-									map.put("to", to);
+//									map.put("id", id);
+//									String f = from.split("/")[0];
+//									map.put("from", f);
+//									map.put("to", to);
 									map.put("msgtype", msgtype);
 									apns_logger.debug(id+"::>push="+msg+" ; map="+map);
 									try{
