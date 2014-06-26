@@ -128,7 +128,9 @@ public class LogNode {
 										String resmsg = build_push_msg(msgtype,msg);
 										apns_logger.debug(id+"::>push="+msg+" ; map="+map+ " ; resmsg="+resmsg);
 										if(resmsg!=null){
-											PushApn.sendMsgApn(deviceToken, resmsg, "123456", isDebug(id), map);
+											//TODO badge
+											int badge = 1;
+											PushApn.sendMsgApn(deviceToken, resmsg, "123456", isDebug(id), map,badge);
 										}
 									}catch(Exception err){
 										apns_logger.error(id,err);
@@ -325,8 +327,9 @@ public class LogNode {
 //			     <body>{"userid":"system","type":"-1","content":"该账号已经在xxx机子上登陆，您被强迫下线"}
 //			     </body>
 //			     </message>
-				String content = json.getString("content");
-				return content;
+				// XXX 2014-6-24 : 宇庭要求这个地方不处理，token有错
+				//String content = json.getString("content");
+				//return content;
 			}else if("0".equals(type)){
 //			     <1>好友请求消息（ejabber不处理)------------------  logo+约你妹  xxx请求你加为好友
 //			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
@@ -432,17 +435,20 @@ public class LogNode {
 //			     <message id="xxxxx" from="xx@test.com" to="yy@group.test.com" type="normal" msgtype=“system”>
 //			     <body>{groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"type":"12"}</body>
 //			     </message>
-				String username = json.getString("username");
-				return username+"创建了多人对话";
+				//凡2014-06-25 15:26:18
+				//修改下这两个传递的内容 你被邀请您加入xxxx（xxxx为多人对话名称）
+				String groupname = json.getString("groupname");
+				return "你被邀请您加入"+groupname;
 			}else if("13".equals(type)){
 //			     <14>邀请某些人加入多人会话消息（ejabber需要处理）groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）------------------  logo+约你妹  xxx邀请您加入xxxx（xxxx为群组名称）
 //			     http发送消息格式
 //			     <message id="xxxxx" from="xx@test.com" to"yy@group.test.com" type="normal" msgtype=“system”>
 //			     <body>{groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"type":"13","grouplist":[”123456","123456","123456"]}</body>
 //			     </message>
-				String username = json.getString("username");
+				//凡2014-06-25 15:26:18
+				//修改下这两个传递的内容 你被邀请您加入xxxx（xxxx为多人对话名称）
 				String groupname = json.getString("groupname");
-				return username+"邀请您加入"+groupname;
+				return "你被邀请您加入"+groupname;
 			}else if("14".equals(type)){
 //			     <15>踢出某个多人会话成员消息（ejabber不需要处理，这里特别注意的是自己退出多人对话（非管理员），不发送xmpp消息）groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）------------------ logo+约你妹  您被管理员踢出xxxx（xxxx为群组名称）
 //			     <message id="xxxxx" from="xx@test.com" to"yy@test.com" type="normal" msgtype=“system”>
