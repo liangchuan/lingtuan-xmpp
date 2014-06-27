@@ -126,11 +126,17 @@ public class LogNode {
 									apns_logger.debug(id+"::>push="+msg+" ; map="+map);
 									try{
 										String resmsg = build_push_msg(msgtype,msg);
-										apns_logger.debug(id+"::>push="+msg+" ; map="+map+ " ; resmsg="+resmsg);
 										if(resmsg!=null){
 											//TODO badge
 											int badge = 1;
-											PushApn.sendMsgApn(deviceToken, resmsg, "123456", isDebug(id), map,badge);
+											String apns_push_pwd = Config.publicConfig.get("apns_push_pwd");
+											apns_logger.debug(id+"::>push="+msg+" ; map="+map+ " ; resmsg="+resmsg+" ; apns_push_pwd="+apns_push_pwd);
+											if(apns_push_pwd==null&&"".equals(apns_push_pwd)){
+												apns_push_pwd = "111111";
+											}
+											PushApn.sendMsgApn(deviceToken, resmsg, apns_push_pwd, isDebug(id), map,badge);
+										}else{
+											apns_logger.debug(id+"::>push="+msg+" ; map="+map+ " ; resmsg="+resmsg);
 										}
 									}catch(Exception err){
 										apns_logger.error(id,err);
