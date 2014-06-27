@@ -392,7 +392,7 @@ ack_task(ID,From,To,Packet)->
 	after ?TIME_OUT -> 
 		?INFO_MSG("ACK_TASK_~p ::::> AFTER",[ID]), 
 		mnesia:dirty_delete(dmsg,ID), 
-		%% offline_message_hook_handler(From,To,Packet) 
+        aa_offline_mod:offline_message_hook_handler(From,To,Packet),
 		{xmlelement,"message",Header,_ } = Packet,
 		D = dict:from_list(Header),
 		V = dict:fetch("msgtype", D),
