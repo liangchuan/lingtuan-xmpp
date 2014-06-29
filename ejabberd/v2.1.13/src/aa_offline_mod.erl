@@ -185,7 +185,7 @@ apns_push(Packet,Node)->
 			KEY = User++"@"++Domain++"/offline_msg",
 			R = gen_server:call(?MODULE,{range_offline_msg,KEY}),
 			B = length(R),	
-			Message = {apns_push,ID,From,To,MsgType,Msg,B},
+			Message = {apns_push,ID,From,To,MsgType,Msg,integer_to_list(B)},
 			case MsgType of
 				"msgStatus" ->
 					?DEBUG("apns_push_skip msgtype=msgStatus ; id=~p",[ID]),
