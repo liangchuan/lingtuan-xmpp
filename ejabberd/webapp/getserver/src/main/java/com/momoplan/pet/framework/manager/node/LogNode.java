@@ -109,8 +109,9 @@ public class LogNode {
 
 			private void apns_push(OtpErlangObject obj) {
 				try {
-					// tuple ::> {apns_push:atom,id:string,from:string,to:string,msgtype:string,msg:string}
+					// tuple ::> {apns_push:atom,id:string,from:string,to:string,msgtype:string,msg:binary,badge:integer}
 					OtpErlangTuple tuple = (OtpErlangTuple) obj;
+					apns_logger.debug("tuple == "+tuple.toString());
 					OtpErlangAtom flag = (OtpErlangAtom) tuple.elementAt(0);
 					if ("apns_push".equalsIgnoreCase(flag.atomValue())) {
 						String id = ((OtpErlangString) tuple.elementAt(1)).stringValue();
@@ -122,10 +123,16 @@ public class LogNode {
 
 						int badge = 1;
 						try{
-							OtpErlangInt badgeObj = ((OtpErlangInt) tuple.elementAt(6));
-							badge = badgeObj.intValue();
+							apns_logger.debug("has_badge id="+id);
+							String badgeObj = ((OtpErlangString) tuple.elementAt(6)).stringValue();
+							apns_logger.debug("has_badge id="+id+" ; badgeObj="+badgeObj);
+							badge = Integer.parseInt(badgeObj);
 							apns_logger.debug("has_badge id="+id+" ; badge="+badge);
-						}catch(Exception e){}
+						}catch(Exception e){
+							apns_logger.debug("has_badge id="+id+" ; error_msg="+e.getMessage());
+							e.printStackTrace();
+							apns_logger.error("badge", e);
+						}
 
 						if(is_repeat(id)){
 							//重复的
@@ -137,6 +144,7 @@ public class LogNode {
 							log.append(to).append("\01");
 							log.append(msgtype).append("\01");
 							log.append(msg).append("\01");
+							log.append(badge).append("\01");
 							apns_logger.info(log.toString());
 							try{
 								JSONObject json = new JSONObject();
