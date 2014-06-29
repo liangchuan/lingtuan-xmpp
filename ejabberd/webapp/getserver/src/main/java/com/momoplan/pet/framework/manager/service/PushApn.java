@@ -68,17 +68,17 @@ public class PushApn {
 	public static void main(String[] args) throws Exception {
 		long s = System.currentTimeMillis();
 		//String token = "588a5c9d98addf7aea3b0dc391bdc0a9c004a9d5bcdf83b095614463859d1079";
-		String token = "b4272fe0bc520385e7615d8b1027eaf347c401c9e2a005909a93ff26465eabeb";
+		String token = "6c36310d6b2b9bee17506268240586d3695dd9a43af044505bee09db549e3268";
 		//{to=480924@yuejian.net/46E283A9-6472-4A6B-A6FB-BFED1AC8F35C, id=EC87258C-940C-459F-90AD-6692D3714F87, msgtype=normalchat, from=404757@yuejian.net/46E283A9-6472-4A6B-A6FB-BFED1AC8F35C}
 		Map<String,String> map = new HashMap<String,String>();
 //		map.put("to", "480924@yuejian.net/46E283A9-6472-4A6B-A6FB-BFED1AC8F35C");
-		map.put("from", "404757@yuejian.net");
+//		map.put("from", "404757@yuejian.net");
 //		map.put("id", "EC87258C-940C-459F-90AD-6692D3714F87");
 		map.put("msgtype", "normalchat");
+//		sendMsgApn(token,"liangc-test-001","111111",true,map,1);
+		sendMsgApn(token,"liangc-test-002","111111",false,map,1);
 		
-//		sendMsgApn(token,"3—Hello bay!!发来了KNothing的名片","123456",true,map);
 		System.out.println("OK...");
-		System.out.println("你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你480924@yuejian.net/46E283A9-6472-4A6B-A6FB-BFED1AC8F35C480924@yuejian.net/46E283A9-6472-4A6B-A6FB-BFED1AC8F35Cssssssss46E283A9-6472-4A6B-A6FB-BFED1AC8F35C".getBytes().length);
 		long e = System.currentTimeMillis();
 		System.out.println(e-s);
 	}

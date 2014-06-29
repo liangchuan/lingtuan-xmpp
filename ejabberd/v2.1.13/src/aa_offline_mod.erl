@@ -180,7 +180,12 @@ apns_push(Packet,Node)->
 			MsgType = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); false-> "" end,
 			Mask = case dict:is_key("mask",D) of true-> dict:fetch("mask",D); false-> "0" end,
 			Msg     = erlang:list_to_binary(aa_log:get_text_message_from_packet(Packet)),
-			Message = {apns_push,ID,From,To,MsgType,Msg},
+
+			#jid{user=User,server=Domain} = jlib:string_to_jid(xml:get_tag_attr_s("to", Packet)),
+			KEY = User++"@"++Domain++"/offline_msg",
+			R = gen_server:call(?MODULE,{range_offline_msg,KEY}),
+			B = length(R),	
+			Message = {apns_push,ID,From,To,MsgType,Msg,B},
 			case MsgType of
 				"msgStatus" ->
 					?DEBUG("apns_push_skip msgtype=msgStatus ; id=~p",[ID]),
