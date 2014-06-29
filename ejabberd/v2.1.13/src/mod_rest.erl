@@ -12,6 +12,8 @@
 -include("jlib.hrl").
 -include("web/ejabberd_http.hrl").
 
+-record(session, {sid, usr, us, priority, info}).
+
 start(_Host, _Opts) ->
 	?DEBUG("Starting: ~p ~p", [_Host, _Opts]),
     	RESTSupervisor = { ejabberd_mod_rest_sup, 
@@ -41,13 +43,48 @@ process([], #request{method = 'POST', data = Data, ip = Ip }) ->
 	Log = [jlib:jid_to_string(From), Ip, jlib:jid_to_string(To), Stanza],
 	?INFO_MSG("####rest ::> from=~p;ip=~p;to=~p;packet=~p;", Log),
     	try
-		{xmlelement, "message", _Attrs, _Kids} = Stanza,
-		aa_hookhandler:user_send_packet_handler(From,To,Stanza),
-		case ejabberd_router:route(From, To, Stanza) of ok -> {200, [], "Ok"}; _ -> {500, [], "Error"} end
+			{xmlelement, "message", _Attrs, _Kids} = Stanza,
+			aa_hookhandler:user_send_packet_handler(From,To,Stanza),
+    	    aa_offline_mod:offline_message_hook_handler(From,To,Stanza),
+			case ejabberd_router:route(From, To, Stanza) of 
+				ok -> 
+					case is_offline(To) of
+						true->
+    	    				aa_offline_mod:offline_message_hook_handler(From,To,Stanza);
+						false->
+							aa_hookhandler:user_send_packet_handler(From,To,Stanza) 
+					end,
+					{200, [], "Ok"}; 
+				_ -> 
+					{500, [], "Error"} 
+			end
     	catch
-		error:{badmatch, _} -> {406, [], "Error: can only accept <message/>"};
-	  	error:{Reason, _} -> {500, [], "Error: " ++ atom_to_list(Reason)}
+			error:{badmatch, _} -> {406, [], "Error: can only accept <message/>"};
+	  		error:{Reason, _} -> {500, [], "Error: " ++ atom_to_list(Reason)}
     	end;
 process(_Path, _Request) ->
     	?DEBUG("Got request to ~p: ~p", [_Path, _Request]),
     	{200, [], "Try POSTing a stanza."}.
+
+
+
+is_offline(#jid{user=User, server=Server, resource=Resource}) ->
+	try
+		LUser = jlib:nodeprep(User),
+		LServer = jlib:nameprep(Server),
+		LResource = jlib:resourceprep(Resource),
+		USR = {LUser, LServer, LResource},
+		case mnesia:dirty_index_read(session, USR, #session.usr) of
+		[] ->
+			?ERROR_MSG("mod_rest__is_offline_true usr=~p",[USR]),
+			true;
+		O ->
+			?ERROR_MSG("mod_rest__is_offline_false usr=~p ; session=~p",[USR,O]),
+			false
+		end 
+	catch 
+		_:_ ->
+			Error = erlang:get_stacktrace(),
+			?ERROR_MSG("mod_rest__is_offline Error=~p",[Error]),
+			false	
+	end.
