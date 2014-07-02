@@ -44,7 +44,7 @@ process([], #request{method = 'POST', data = Data, ip = Ip }) ->
 	?INFO_MSG("####rest ::> from=~p;ip=~p;to=~p;packet=~p;", Log),
     	try
 			{xmlelement, "message", _Attrs, _Kids} = Stanza,
-    	    aa_offline_mod:offline_message_hook_handler(From,To,Stanza),
+			aa_hookhandler:user_send_packet_handler(From,To,Stanza), 
 			case ejabberd_router:route(From, To, Stanza) of 
 				ok -> 
 					%% case is_offline(To) of
