@@ -19,15 +19,22 @@ import org.slf4j.LoggerFactory;
 public class PushApn {
 	
 	private static Logger logger = LoggerFactory.getLogger(PushApn.class);
+	
+	static String def_cert = System.getProperty("user.home")+"/.ssh/ynm.p12";
 	/**
 	 * 单发消息
 	 * @param deviceToken 
 	 * @param msg 
 	 * @param pwd 密码 123456
 	 */
-	public static void sendMsgApn(String deviceToken,String msg,String pwd,boolean debug,Map<String,String> params,int badge) throws Exception {
+	public static void sendMsgApn(String deviceToken,String msg,String pwd,boolean debug,Map<String,String> params,int badge,String cert) throws Exception {
 		try {
-			String cert = System.getProperty("user.home")+"/.ssh/ynm.p12";
+			if(cert==null||"".equals(cert)){
+				cert = def_cert;
+				logger.debug("use_def_cert");
+			}else{
+				cert = System.getProperty("user.home")+"/.ssh/"+cert;
+			}
 			logger.debug("cert="+cert);
 			logger.debug("deviceToken="+deviceToken+" ; pwd="+pwd+" ; debug="+debug+" ; msg="+msg+" ; params="+params); 
 			PushNotificationPayload payLoad = new PushNotificationPayload();
@@ -76,7 +83,7 @@ public class PushApn {
 //		map.put("id", "EC87258C-940C-459F-90AD-6692D3714F87");
 		map.put("msgtype", "normalchat");
 //		sendMsgApn(token,"liangc-test-001","111111",true,map,1);
-		sendMsgApn(token,"liangc-test-002","111111",false,map,1);
+		sendMsgApn(token,"liangc-test-002","111111",false,map,1,null);
 		
 		System.out.println("OK...");
 		long e = System.currentTimeMillis();
