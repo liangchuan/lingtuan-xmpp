@@ -82,7 +82,23 @@ handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=Gr
 							{error,Err}
 					end;
 				_ ->
-					case lists:member(list_to_binary(FromUser),UserList) of
+					[JSON] = aa_log:get_text_message_from_packet(Packet),	
+					?DEBUG("ROUTE_GROUP ::::> JSON=~p",[JSON]),
+					{ok,JO,_} = rfc4627:decode(erlang:list_to_binary(JSON)),
+					?DEBUG("ROUTE_GROUP ::::> JO=~p",[JO]),
+					RUserList = case rfc4627:get_field(JO,"type") of 
+						{ok,<<"18">>} ->
+							%% 2014-7-8 : type=18的  system 系统消息，你这边需要特殊处理一下 ......
+							case lists:member(list_to_binary(FromUser),UserList) of
+								false ->
+									lists:append(UserList,[list_to_binary(FromUser)]);
+								_ ->
+									UserList
+							end;
+						_ ->
+							UserList		
+					end,
+					case lists:member(list_to_binary(FromUser),RUserList) of
 						false ->
 							%%TODO 被T了
 							%% <message id="xxxxx" from="1@yuejian.net" to"yy@yuejian.net" type="normal" msgtype=“system”>
