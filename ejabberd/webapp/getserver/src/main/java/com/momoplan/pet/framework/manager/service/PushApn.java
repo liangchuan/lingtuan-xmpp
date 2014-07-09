@@ -33,6 +33,9 @@ public class PushApn {
 				cert = def_cert;
 				logger.debug("use_def_cert");
 			}else{
+				if(cert.startsWith("dev")){
+					debug = true;
+				}
 				cert = System.getProperty("user.home")+"/.ssh/"+cert;
 			}
 			logger.debug("cert="+cert);
