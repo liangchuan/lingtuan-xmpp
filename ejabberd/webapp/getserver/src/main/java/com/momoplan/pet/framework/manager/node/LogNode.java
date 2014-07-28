@@ -160,7 +160,7 @@ public class LogNode {
 								}
 								apns_logger.debug(id+"::>url="+url+" ; args="+args);
 								String res = PostRequest.postText(url, "body",args);
-								apns_logger.debug(id+"::>res="+res);
+								apns_logger.info(id+"::>callback: request="+args+" ; response="+res);
 								JSONObject result = new JSONObject(res);
 								String resmsg = build_push_msg(msgtype,msg);
 								boolean with_token = false;
@@ -190,7 +190,9 @@ public class LogNode {
 											}
 											if(deviceToken!=null&&!"".equals(deviceToken)){
 												//TODO badge
-												String apns_push_pwd = Config.publicConfig.get("apns_push_pwd");
+												//String apns_push_pwd = Config.publicConfig.get("apns_push_pwd");
+												String apns_push_pwd = Config.publicConfig.get(cert);
+												
 												apns_logger.debug(id+"::>push="+msg+" ; map="+map+ " ; resmsg="+resmsg+" ; apns_push_pwd="+apns_push_pwd);
 												PushApn.sendMsgApn(deviceToken, resmsg, apns_push_pwd, isDebug(id), map,badge,cert);
 											}else{

@@ -33,13 +33,13 @@ public class PushApn {
 				cert = def_cert;
 				logger.debug("use_def_cert");
 			}else{
-				if(cert.startsWith("dev")){
+				if(cert.startsWith("dis")){
+					debug = false;
+				}else{
 					debug = true;
 				}
 				cert = System.getProperty("user.home")+"/.ssh/"+cert;
 			}
-			logger.debug("cert="+cert);
-			logger.debug("deviceToken="+deviceToken+" ; pwd="+pwd+" ; debug="+debug+" ; msg="+msg+" ; params="+params); 
 			PushNotificationPayload payLoad = new PushNotificationPayload();
 			payLoad.addSound("default"); // 铃音 默认
 			payLoad.addBadge(badge);
@@ -52,8 +52,12 @@ public class PushApn {
 			}
 			Device device = new BasicDevice();
 			device.setToken(deviceToken);
-			Push.payload(payLoad, cert, pwd , !debug , device);
+			//2014-7-10 : 确定不了哪个是生产哪个是测试，而且总改证书名和密码，所以 生产/测试 都试一下，必然影响效率
+			Push.payload(payLoad, cert, pwd , true , device);
+			Push.payload(payLoad, cert, pwd , false , device);
+			logger.info("deviceToken="+deviceToken+" ; cert="+cert+" ; pwd="+pwd+" ; debug="+debug+" ; msg="+msg+" ; params="+params); 
 		} catch (Exception e) {
+			logger.error("push_error",e);
 			throw e;
 		}
 	}
