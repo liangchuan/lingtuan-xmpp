@@ -88,7 +88,7 @@ offline_message_hook_handler(save,#jid{user=FromUser}=From, #jid{user=User,serve
 offline_message_hook_handler(#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet) ->
 	?INFO_MSG("offline_message_hook_handler ==> ",[]),
 	Log_node = ejabberd_config:get_local_option({log_node,Domain}),
-	apns_push(Packet,Log_node),
+	apns_push(From,To,Packet,Log_node),
 	offline_message_hook_handler(save,#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet).
 	%% {apns_push:atom,jid:string,id:string,msgtype:string,msg:string}
 
@@ -169,23 +169,47 @@ conn_ecache_node() ->
 			{error,E,I}
 	end.
 
-apns_push(Packet,Node)->
-	?INFO_MSG("apns_push ::::> Node=~p ; Packet=~p",[Node,Packet]),
+apns_push(#jid{user=FU,server=FS,resource=FR}=From,#jid{user=TU,server=TS,resource=TR}=To,Packet,Node)->
+	?INFO_MSG("apns_push ::::> From=~p ; To=~p ; Node=~p ; Packet=~p",[From,To,Node,Packet]),
+	F = case is_list(FR) of
+		true ->
+			case length(FR)>0 of
+				true ->
+					FU++"@"++FS++"/"++FR;
+				_ ->
+					FU++"@"++FS
+			end;
+		false ->
+			FU++"@"++FS
+	end,
+	T = case is_list(TR) of
+		true ->
+			case length(TR)>0 of
+				true ->
+					TU++"@"++TS++"/"++TR;
+				_ ->
+					TU++"@"++TS
+			end;
+		false ->
+			TU++"@"++TS
+	end,
+
 	case Packet of 
 		{xmlelement,"message",Attr,_} -> 
 			D = dict:from_list(Attr),
 			ID      = case dict:is_key("id",D) of true-> dict:fetch("id",D); false-> "" end,
-			From    = case dict:is_key("from",D) of true-> dict:fetch("from",D); false-> "" end,
-			To      = case dict:is_key("to",D) of true-> dict:fetch("to",D); false-> "" end,
+			%% From    = case dict:is_key("from",D) of true-> dict:fetch("from",D); false-> "" end,
+			%% To      = case dict:is_key("to",D) of true-> dict:fetch("to",D); false-> "" end,
 			MsgType = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); false-> "" end,
 			Mask = case dict:is_key("mask",D) of true-> dict:fetch("mask",D); false-> "0" end,
 			Msg     = erlang:list_to_binary(aa_log:get_text_message_from_packet(Packet)),
 
-			#jid{user=User,server=Domain} = jlib:string_to_jid(xml:get_tag_attr_s("to", Packet)),
+			%% #jid{user=User,server=Domain} = jlib:string_to_jid(xml:get_tag_attr_s("to", Packet)),
+			#jid{user=User,server=Domain} = To, 
 			KEY = User++"@"++Domain++"/offline_msg",
 			R = gen_server:call(?MODULE,{range_offline_msg,KEY}),
 			B = length(R),	
-			Message = {apns_push,ID,From,To,MsgType,Msg,integer_to_list(B)},
+			Message = {apns_push,ID,F,T,MsgType,Msg,integer_to_list(B)},
 			case MsgType of
 				"msgStatus" ->
 					?DEBUG("apns_push_skip msgtype=msgStatus ; id=~p",[ID]),
