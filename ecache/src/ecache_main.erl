@@ -38,7 +38,14 @@ cmd(Pid,Args) ->
 
 do_cmd(Args)->	
 	log4erl:info("do_cmd_input ::> ~p",[Args]),	
-	Result = sharded_eredis:q(Args),	
+	Result = try
+		sharded_eredis:q(Args)
+	catch 
+		_:_ ->
+			Err = erlang:get_stacktrace(),
+			log4erl:info("exception args=~p ; error=~p",[Args,Err]),
+			{error,[]}
+	end,
 	log4erl:info("do_cmd_output ::> ~p",[Result]),	
 	Result.
 
