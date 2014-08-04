@@ -361,7 +361,7 @@ message_handler(#jid{user=FU,server=FD}=From,To,Packet,State) ->
 		   KK = FU++"@"++FD++"/offline_msg", 
 		   handle_call({ecache_cmd,["DEL",SYNCID]},[],State), 
 		   handle_call({ecache_cmd,["ZREM",KK,SYNCID]},[],State), 
-		   ?DEBUG("==> SYNC_RES ack => ACK_USER=~p ; ACK_ID=~p",[KK,SYNCID]), 
+		   ?WARNING_MSG("==> SYNC_RES ack => ACK_USER=~p ; ACK_ID=~p",[KK,SYNCID]), 
 		   ack_task({ack,SYNCID}); 
 	   true -> 
 		   skip 
