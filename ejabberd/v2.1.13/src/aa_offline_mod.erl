@@ -86,11 +86,18 @@ offline_message_hook_handler(save,#jid{user=FromUser}=From, #jid{user=User,serve
 	end.
 	
 offline_message_hook_handler(#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet) ->
-	?INFO_MSG("offline_message_hook_handler ==> ",[]),
-	Log_node = ejabberd_config:get_local_option({log_node,Domain}),
-	apns_push(From,To,Packet,Log_node),
-	offline_message_hook_handler(save,#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet).
-	%% {apns_push:atom,jid:string,id:string,msgtype:string,msg:string}
+	try
+		?INFO_MSG("offline_message_hook_handler ==> ",[]),
+		Log_node = ejabberd_config:get_local_option({log_node,Domain}),
+		apns_push(From,To,Packet,Log_node),
+		offline_message_hook_handler(save,#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet) 
+		%% {apns_push:atom,jid:string,id:string,msgtype:string,msg:string}
+	catch 
+		C:E ->
+			Err = erlang:get_stacktrace(),
+			?ERROR_MSG("offline_message_hook_error=> C=~p ; E=~p ; Err=~p",[C,E,Err])
+	end,
+	ok.
 
 
 %% ====================================================================
