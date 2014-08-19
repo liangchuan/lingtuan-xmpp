@@ -359,7 +359,8 @@ message_handler(#jid{user=FU,server=FD}=From,To,Packet,State) ->
 		   ack_task({new,SYNCID,From,To,Packet}); 
 	   ACK_FROM,MT=:="msgStatus" -> 
 		   KK = FU++"@"++FD++"/offline_msg", 
-		   handle_call({ecache_cmd,["DEL",SYNCID]},[],State), 
+		   %% handle_call({ecache_cmd,["DEL",SYNCID]},[],State), 
+		   ack_sync(SYNCID,State,0),
 		   handle_call({ecache_cmd,["ZREM",KK,SYNCID]},[],State), 
 		   ?WARNING_MSG("==> SYNC_RES ack => ACK_USER=~p ; ACK_ID=~p",[KK,SYNCID]), 
 		   ack_task({ack,SYNCID}); 
@@ -368,7 +369,19 @@ message_handler(#jid{user=FU,server=FD}=From,To,Packet,State) ->
 	end, 
 	ok.
 
-
+ack_sync(SYNCID,State,N) when N =< 6 ->
+	case handle_call({ecache_cmd,["DEL",SYNCID]},[],State) of 
+		{ok,<<"0">>} ->
+			timer:sleep(500),
+			?WARNING_MSG("REDEL ACK_ID=~p ; N=~p",[SYNCID,N]),
+			ack_sync(SYNCID,State,N+1);
+		_ ->
+			ok
+	end;
+ack_sync(SYNCID,_State,N) when N > 6 ->
+	?WARNING_MSG("SYNC_RES ack_id_notfound ; ACK_ID=~p",[SYNCID]).
+			
+	
 
   
 ack_task({new,ID,From,To,Packet})-> 
