@@ -362,15 +362,16 @@ message_handler(#jid{user=FU,server=FD}=From,To,Packet,State) ->
 		   %% handle_call({ecache_cmd,["DEL",SYNCID]},[],State), 
 		   ack_sync(SYNCID,State,0),
 		   handle_call({ecache_cmd,["ZREM",KK,SYNCID]},[],State), 
-		   ?WARNING_MSG("==> SYNC_RES ack => ACK_USER=~p ; ACK_ID=~p",[KK,SYNCID]), 
+		   ?WARNING_MSG("[v.140821] ==> SYNC_RES ack => ACK_USER=~p ; ACK_ID=~p",[KK,SYNCID]), 
 		   ack_task({ack,SYNCID}); 
 	   true -> 
 		   skip 
 	end, 
 	ok.
 
-ack_sync(SYNCID,State,N) when N =< 6 ->
-	case handle_call({ecache_cmd,["DEL",SYNCID]},[],State) of 
+ack_sync( SYNCID, #state{ecache_node=Node,ecache_mod=Mod,ecache_fun=Fun}=State , N ) when N =< 6 ->
+	Cmd = ["DEL",SYNCID],
+	case rpc:call(Node,Mod,Fun,[Cmd]) of  
 		{ok,<<"0">>} ->
 			timer:sleep(500),
 			?WARNING_MSG("REDEL ACK_ID=~p ; N=~p",[SYNCID,N]),
