@@ -254,6 +254,30 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 														route_3(To,JID3,Packet,J4B)	
 													end,ToList) 
 											end;
+										{ok,<<"20">>} ->
+											%% 140823 : add by liangc 
+											%% 宇庭新需求：社交圈新动态消息（ejabber需要处理）      apns推送内容（无） 
+											TK = "grouplist",
+											{ok,ToList} = rfc4627:get_field(JO,TK),
+											case rfc4627:get_field(JO,TK) of
+												not_found ->
+													skip;
+												{ok,ToList} ->
+													?DEBUG("T20T20 ::::> ToList=~p",[ToList]),
+													{obj,TL3} = JO,
+													TL3_1=lists:map(fun({K3,V3})-> case K3=:=TK of true->skip;false->{K3,V3} end end,TL3),
+													TL3_2=[X||X<-TL3_1,X=/=skip],
+													JO_1 = {obj,TL3_2},
+													?DEBUG("T20T20 ::::> JO_1=~p",[JO_1]), 
+													J4B = list_to_binary(rfc4627:encode(JO_1)),
+													?DEBUG("T20T20 ::::> J4B=~p",[J4B]), 
+													lists:foreach(fun(To3) ->
+														UID = binary_to_list(To3),
+														JID3=#jid{user=UID,server=Domain,luser=UID,
+																  lserver=Domain,resource=[],lresource=[]},
+														route_3(To,JID3,Packet,J4B)	
+													end,ToList) 
+											end;
 										_ ->
 											case TUser =:= "0" of
 												true ->
@@ -362,7 +386,7 @@ message_handler(#jid{user=FU,server=FD}=From,To,Packet,State) ->
 		   %% handle_call({ecache_cmd,["DEL",SYNCID]},[],State), 
 		   ack_sync(SYNCID,State,0),
 		   handle_call({ecache_cmd,["ZREM",KK,SYNCID]},[],State), 
-		   ?WARNING_MSG("[v.140821] ==> SYNC_RES ack => ACK_USER=~p ; ACK_ID=~p",[KK,SYNCID]), 
+		   ?WARNING_MSG("[v.140823] ==> SYNC_RES ack => ACK_USER=~p ; ACK_ID=~p",[KK,SYNCID]), 
 		   ack_task({ack,SYNCID}); 
 	   true -> 
 		   skip 
