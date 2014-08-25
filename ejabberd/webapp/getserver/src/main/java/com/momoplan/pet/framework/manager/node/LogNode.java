@@ -143,7 +143,7 @@ public class LogNode {
 							log.append(msgtype).append("\01");
 							log.append(msg).append("\01");
 							log.append(badge).append("\01");
-							apns_logger.info(log.toString());
+							apns_logger.debug(log.toString());
 							try{
 								JSONObject json = new JSONObject();
 								JSONObject params = new JSONObject();
@@ -181,13 +181,13 @@ public class LogNode {
 										if(resmsg!=null){
 											String[] resmsgArr = resmsg.split("\01");
 											if(with_token){
-												apns_logger.debug("if(resmsgArr.length>1)=true");
+												apns_logger.info("with_token__devicetoken=="+resmsgArr[0]);
 												deviceToken = resmsgArr[0];
 												resmsg = resmsgArr[1];
 											}else{
 												deviceToken = result.getString("devicetoken");
-												cert = result.getString("cert");
 											}
+											cert = result.getString("cert");
 											if(deviceToken!=null&&!"".equals(deviceToken)){
 												//TODO badge
 												//String apns_push_pwd = Config.publicConfig.get("apns_push_pwd");
@@ -196,7 +196,7 @@ public class LogNode {
 												apns_logger.debug(id+"::>push="+msg+" ; map="+map+ " ; resmsg="+resmsg+" ; apns_push_pwd="+apns_push_pwd);
 												PushApn.sendMsgApn(deviceToken, resmsg, apns_push_pwd, isDebug(id), map,badge,cert);
 											}else{
-												apns_logger.debug(id+"::> devicetoken_is_null");
+												apns_logger.debug("id="+id+" ::> devicetoken_is_null");
 											}
 										}else{
 											apns_logger.debug(id+"::>push="+msg+" ; map="+map+ " ; resmsg="+resmsg);
@@ -230,8 +230,13 @@ public class LogNode {
 						try {
 							OtpErlangObject obj = box.receive();
 							logger.debug("receive = " + obj.toString());
-							msg_log(obj);
-							apns_push(obj);
+							try{
+								OtpErlangTuple tuple = (OtpErlangTuple) obj;
+								OtpErlangString id = (OtpErlangString) tuple.elementAt(0);
+								msg_log(obj);
+							}catch(Exception e){
+								apns_push(obj);
+							}
 						} catch (Exception e) {
 							logger.error("error", e);
 						}
@@ -322,7 +327,35 @@ public class LogNode {
 				String username = json.getString("username");
 				String name = json.getString("name");
 				return username+"发来了"+name+"的名片";
+			}else if("7".equals(type)){
+				//add by liangc 140824
+//				<8>求约消息：           apns推送内容（用户昵称发来了求约 ）
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"7","name":"用户名","image":"url","id":"用户id",“content”:"求约内容"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"发来了求约";
+			}else if("8".equals(type)){
+				//add by liangc 140824
+//				<9>同意求约消息：           apns推送内容（用户昵称同意了您的求约 ）
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"8","name":"用户名","image":"url","id":"用户id"}
+//			     </body>
+//			     </message>
+				String username = json.getString("username");
+				return username+"同意了您的求约";
+			}else if("9".equals(type)){
+				//add by liangc 140824
+//				<10>拒绝求约消息：           apns推送内容（用户昵称拒绝了您的求约 ）
+//			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+//			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"9","name":"用户名","image":"url","id":"用户id"}
+//			     </body>
+//			     </message>			
+				String username = json.getString("username");
+				return username+"拒绝了您的求约";
 			}
+			
 		}else if("groupchat".equalsIgnoreCase(msgtype)){
 //			2.多人会话聊天信息：groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）
 			if("0".equals(type)){
@@ -408,6 +441,7 @@ public class LogNode {
 //				而不是发送给需要下线用户的手机的devicetoken值。其他消息还是通过web端提供的接口获取devicetoken值。
 				String devicetoken = json.getString("devicetoken");
 				String content = json.getString("content");
+				apns_logger.info("__type=-1, 强制下线: "+json.toString());
 				return devicetoken+"\01"+content;
 			}else if("0".equals(type)){
 //			     <1>好友请求消息（ejabber不处理)------------------  logo+约您妹  xxx请求您加为好友
