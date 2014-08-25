@@ -7,18 +7,19 @@ import java.util.Map;
 import javapns.Push;
 import javapns.devices.Device;
 import javapns.devices.implementations.basic.BasicDevice;
-import javapns.notification.Payload;
 import javapns.notification.PushNotificationPayload;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.momoplan.pet.framework.manager.node.apnspush.ApnsPushLog;
 /**
  * 给 IOS 推送消息
  * @author liangc
  */
 public class PushApn {
 	
-	private static Logger logger = LoggerFactory.getLogger(PushApn.class);
+	private static Logger logger = LoggerFactory.getLogger(ApnsPushLog.class);
 	
 	static String def_cert = System.getProperty("user.home")+"/.ssh/ynm.p12";
 	/**
@@ -55,8 +56,9 @@ public class PushApn {
 			//2014-7-10 : 确定不了哪个是生产哪个是测试，而且总改证书名和密码，所以 生产/测试 都试一下，必然影响效率
 			Push.payload(payLoad, cert, pwd , true , device);
 			Push.payload(payLoad, cert, pwd , false , device);
-			logger.info("deviceToken="+deviceToken+" ; cert="+cert+" ; pwd="+pwd+" ; debug="+debug+" ; msg="+msg+" ; params="+params); 
+			logger.info("push_success__deviceToken="+deviceToken+" ; cert="+cert+" ; pwd="+pwd+" ; debug="+debug+" ; msg="+msg+" ; params="+params); 
 		} catch (Exception e) {
+			logger.info("push_error__deviceToken="+deviceToken+" ; cert="+cert+" ; pwd="+pwd+" ; debug="+debug+" ; msg="+msg+" ; params="+params); 
 			logger.error("push_error",e);
 			throw e;
 		}
