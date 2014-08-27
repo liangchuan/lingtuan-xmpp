@@ -5,6 +5,7 @@
 
 -behaviour(gen_server).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([reload_group_user/2]).
 
 -define(HTTP_HEAD,"application/x-www-form-urlencoded").
 
@@ -164,21 +165,48 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
+
+reload_group_user(Domain,GroupId) ->
+	Response = get_user_list_by_group_id(do,Domain,GroupId),
+	case Response of 
+		{ok,_,_,_,_} ->
+			Group_cache_key = GroupId++"@"++Domain++"/group_cache",
+			gen_server:call(aa_hookhandler,{ecache_cmd,["SET",Group_cache_key,erlang:term_to_binary(Response)]});
+		_ ->
+			skip
+	end,
+	Response.
+
 get_user_list_by_group_id(Domain,GroupId)->
 	case GroupId of 
 		"cctest" ->
 			{ok,[<<"cc1">>,<<"cc2">>,<<"cc3">>],[],[],[]};
 		_ ->
-			get_user_list_by_group_id(do,Domain,GroupId)
+ 			case ejabberd_config:get_local_option({group_cache_enable,Domain}) of 
+				true ->
+					get_user_list_by_group_id(cache,Domain,GroupId);
+				_ ->
+					get_user_list_by_group_id(do,Domain,GroupId)
+			end
 	end.
+get_user_list_by_group_id(cache,Domain,GroupId) ->
+	Group_cache_key = GroupId++"@"++Domain++"/group_cache",
+	case gen_server:call(aa_hookhandler,{ecache_cmd,["GET",Group_cache_key]}) of
+		{ok,Bin} when erlang:is_binary(Bin) ->
+			erlang:binary_to_term(Bin);
+		_ ->
+			reload_group_user(Domain,GroupId)
+	end;
 get_user_list_by_group_id(do,Domain,GroupId)->
 	?DEBUG("###### get_user_list_by_group_id :::> GroupId=~p",[GroupId]),
  	HTTPTarget =  ejabberd_config:get_local_option({http_server,Domain}),
+	{M,S,SS} = now(),
+	SN_T = erlang:integer_to_list(M*1000000000000+S*1000000+SS),
 	{Service,Method,GID,SN} = {
 			list_to_binary("ejabberd"),
 			list_to_binary("getUserList"),
 			list_to_binary(GroupId),
-			list_to_binary(os:cmd("uuidgen")--"\n")
+			list_to_binary(SN_T)
 	},
 	ParamObj={obj,[ {"sn",SN},{"service",Service},{"method",Method},{"params",{obj,[{"groupId",GID}]} } ]},
 	Form = "body="++rfc4627:encode(ParamObj),

@@ -40,7 +40,9 @@ handle_http(Req) ->
 
 http_response({S,Req}) ->
 	try
-		Res = {obj,[{success,S#success.success},{entity,S#success.entity}]},
+		{M,S,SS} = now(),
+		SN_T = erlang:integer_to_list(M*1000000000000+S*1000000+SS),
+		Res = {obj,[{sn,SN_T},{success,S#success.success},{entity,S#success.entity}]},
 		?DEBUG("Res_obj=~p",[Res]),
 		J = rfc4627:encode(Res),
 		?DEBUG("Res_json=~p",[J]),
@@ -158,6 +160,23 @@ handle_call({handle_http,Req}, _From, State) ->
 					{ok,JID} = rfc4627:get_field(P, "jid"),
 					BList = aa_blacklist:get_with(JID),
 					http_response({#success{success=true,entity=BList},Req}) 
+				catch 
+					_:_->
+						Err = erlang:get_stacktrace(),
+						http_response({#success{success=false,entity=list_to_binary(Err)},Req}) 
+				end;
+			"reload" when S =:= "group_user" ->
+				?INFO_MSG("http group_user.reload ::> ~p",[Args]),
+				try
+					{ok,P} = rfc4627:get_field(Obj, "params"),
+					{ok,GID} = rfc4627:get_field(P, "gid"),
+					{ok,Domain} = rfc4627:get_field(P, "domain"),
+					case aa_group_chat:reload_group_user(Domain,GID) of 
+						{ok,_,_,_,_} ->
+							http_response({#success{success=true,entity=list_to_binary("ok")},Req});
+						_ ->
+							http_response({#success{success=false,entity=list_to_binary("callback_error")},Req}) 
+					end
 				catch 
 					_:_->
 						Err = erlang:get_stacktrace(),
