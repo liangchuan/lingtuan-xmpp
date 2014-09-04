@@ -42,7 +42,7 @@ http_response({S,Req}) ->
 	try
 		{M,S1,SS1} = now(),
 		SN_T = erlang:integer_to_list(M*1000000000000+S1*1000000+SS1),
-		Res = {obj,[{sn,SN_T},{success,S#success.success},{entity,S#success.entity}]},
+		Res = {obj,[{sn,list_to_binary(SN_T)},{success,S#success.success},{entity,S#success.entity}]},
 		?DEBUG("Res_obj=~p",[Res]),
 		J = rfc4627:encode(Res),
 		?DEBUG("Res_json=~p",[J]),
