@@ -105,9 +105,24 @@ handle_call({sync_packet,K,From,To,Packet}, _F, #state{ecache_node=Node,ecache_m
         {reply, R, State}.
 
 handle_cast({group_chat_filter,From,To,Packet}, State) ->
-	filter_cast({From,To,Packet,true}, State);
+	try
+		filter_cast({From,To,Packet,true}, State) 
+	catch 
+		_:_ ->
+			Err = erlang:get_stacktrace(),
+			?ERROR_MSG("group_chat_filter_error ~p",[Err])
+	end,
+	{noreply, State};
 handle_cast({group_chat_filter,From,To,Packet,SACK}, State) ->
-	filter_cast({From,To,Packet,SACK}, State);
+	try
+		filter_cast({From,To,Packet,SACK}, State) 
+	catch 
+		_:_ ->
+			Err = erlang:get_stacktrace(),
+			?ERROR_MSG("group_chat_filter_error ~p",[Err])
+	end,
+	{noreply, State}.
+	
 handle_cast({server_ack,From,To,Packet}, State) ->
 	%% server_ack(From,To,Packet,State).
 	{noreply, State}.
