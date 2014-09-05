@@ -33,6 +33,7 @@ route_group_msg(From,To,Packet)->
 	{ok,Pid} = start(),
 	?DEBUG("###### route_group_msg_001 ::::> {From,To,Packet}=~p",[{From,To,Packet}]),
 	gen_server:call(Pid,{route_group_msg,From,To,Packet}),
+	?DEBUG("###### route_group_msg_002 ::::> {From,To,Packet}=~p",[{From,To,Packet}]),
 	stop(Pid).
 
 %% ====================================================================
@@ -169,6 +170,8 @@ code_change(_OldVsn, State, _Extra) ->
 reload_group_user(Domain,GroupId) ->
 	Response = get_user_list_by_group_id(do,Domain,GroupId),
 	case Response of 
+		{ok,[],[],[],[]} ->
+			skip;
 		{ok,_,_,_,_} ->
 			Group_cache_key = GroupId++"@"++Domain++"/group_cache",
 			gen_server:call(aa_hookhandler,{ecache_cmd,["SET",Group_cache_key,erlang:term_to_binary(Response)]});
