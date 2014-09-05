@@ -32,15 +32,26 @@ start_link() ->
 route_group_msg(From,To,Packet)->
 	{ok,Pid} = start(),
 	?DEBUG("###### route_group_msg_001 ::::> {From,To,Packet}=~p",[{From,To,Packet}]),
-	gen_server:call(Pid,{route_group_msg,From,To,Packet}),
-	?DEBUG("###### route_group_msg_002 ::::> {From,To,Packet}=~p",[{From,To,Packet}]),
-	stop(Pid).
+	gen_server:cast(Pid,{route_group_msg,From,To,Packet}),
+	?DEBUG("###### route_group_msg_002 ::::> {From,To,Packet}=~p",[{From,To,Packet}]).
 
 %% ====================================================================
 %% Behavioural functions 
 %% ====================================================================
 init([]) ->
 	{ok,#state{}}.
+
+handle_cast({route_group_msg,From,To,Packet}, State) ->
+	try
+		handle_call({route_group_msg,From,To,Packet},[],State) 
+	catch 
+		_:_ ->
+			Err = erlang:get_stacktrace(),
+			?ERROR_MSG("route_group_msg_error ~p",[Err])
+	end,
+	{stop, normal, State};
+handle_cast(stop, State) ->
+	{stop, normal, State}.
 
 handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=GroupId,server=GDomain}=To,Packet}, _From, State) ->
 	case get_user_list_by_group_id(Domain,GroupId) of 
@@ -152,8 +163,6 @@ handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=Gr
 	end,	
 	{reply,[],State}.
 
-handle_cast(stop, State) ->
-	{stop, normal, State}.
 
 handle_info({cmd,_Args},State)->
 	{noreply,State}.
