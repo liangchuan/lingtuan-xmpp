@@ -121,8 +121,7 @@ handle_cast({group_chat_filter,From,To,Packet,SACK}, State) ->
 			Err = erlang:get_stacktrace(),
 			?ERROR_MSG("group_chat_filter_error ~p",[Err])
 	end,
-	{noreply, State}.
-	
+	{noreply, State};
 handle_cast({server_ack,From,To,Packet}, State) ->
 	%% server_ack(From,To,Packet,State).
 	{noreply, State}.
