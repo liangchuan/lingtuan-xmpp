@@ -211,13 +211,19 @@ get_user_list_by_group_id(cache,Domain,GroupId) ->
 	end;
 get_user_list_by_group_id(do,Domain,GroupId)->
 	?DEBUG("###### get_user_list_by_group_id :::> GroupId=~p",[GroupId]),
+	GroupId_bin = case is_binary(GroupId) of 
+		true -> 
+			GroupId ; 
+		_->
+			list_to_binary(GroupId)
+	end,
  	HTTPTarget =  ejabberd_config:get_local_option({http_server,Domain}),
 	{M,S,SS} = now(),
 	SN_T = erlang:integer_to_list(M*1000000000000+S*1000000+SS),
 	{Service,Method,GID,SN} = {
 			list_to_binary("ejabberd"),
 			list_to_binary("getUserList"),
-			list_to_binary(GroupId),
+			GroupId_bin,
 			list_to_binary(SN_T)
 	},
 	ParamObj={obj,[ {"sn",SN},{"service",Service},{"method",Method},{"params",{obj,[{"groupId",GID}]} } ]},
