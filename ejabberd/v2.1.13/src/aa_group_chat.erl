@@ -209,8 +209,10 @@ get_user_list_by_group_id(cache,Domain,GroupId) ->
 		_ ->
 			reload_group_user(Domain,GroupId)
 	end;
-get_user_list_by_group_id(do,Domain,GroupId)->
-	?DEBUG("###### get_user_list_by_group_id :::> GroupId=~p",[GroupId]),
+get_user_list_by_group_id(do,Domain,GroupId) when is_binary(Domain) ->
+	get_user_list_by_group_id(do,binary_to_list(Domain),GroupId);
+get_user_list_by_group_id(do,Domain,GroupId) when is_list(Domain) ->
+	?DEBUG("###### get_user_list_by_group_id :::> Domain=~p ; GroupId=~p",[Domain,GroupId]),
 	GroupId_bin = case is_binary(GroupId) of 
 		true -> 
 			GroupId ; 
