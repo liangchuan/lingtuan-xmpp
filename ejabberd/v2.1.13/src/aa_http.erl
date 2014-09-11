@@ -180,7 +180,8 @@ handle_call({handle_http,Req}, _From, State) ->
 				catch 
 					_:_->
 						Err = erlang:get_stacktrace(),
-						http_response({#success{success=false,entity=list_to_binary(Err)},Req}) 
+						?ERROR_MSG("group_user.reload.error ~p",[Err]),
+						http_response({#success{success=false,entity=exception},Req}) 
 				end;
 			_ ->
 				http_response({#success{success=false,entity=list_to_binary("method undifine")},Req})
