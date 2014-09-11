@@ -171,7 +171,8 @@ handle_call({handle_http,Req}, _From, State) ->
 					{ok,P} = rfc4627:get_field(Obj, "params"),
 					{ok,GID} = rfc4627:get_field(P, "gid"),
 					{ok,Domain} = rfc4627:get_field(P, "domain"),
-					case aa_group_chat:reload_group_user(Domain,GID) of 
+					GID_str = case is_binary(GID) of true -> binary_to_list(GID); _-> GID end,
+					case aa_group_chat:reload_group_user(Domain,GID_str) of 
 						{ok,_,_,_,_} ->
 							http_response({#success{success=true,entity=list_to_binary("ok")},Req});
 						_ ->
