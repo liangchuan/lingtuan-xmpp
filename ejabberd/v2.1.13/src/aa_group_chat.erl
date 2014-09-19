@@ -54,46 +54,51 @@ handle_cast(stop, State) ->
 	{stop, normal, State}.
 
 handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=GroupId,server=GDomain}=To,Packet}, _From, State) ->
+	SYS_Alert = fun() ->
+		%%TODO 解散了
+		%% <message id="xxxxx" from="yy@group.yuejian.net" to="123456@yuejian.net" type="normal" msgtype=“system”>
+		%%	<body>{groupid":"xx","groupname":"",groupmember":[],"type":"15"}</body>
+		%% </message>
+		{X,E,Attr,_} = Packet,
+		RAttr = lists:map(fun({K,V})->
+			case K of
+				"from" ->
+					{K,GroupId++"@"++GDomain};
+				"to" ->
+					{K,FromUser++"@"++Domain};
+				"type" ->
+					{K,"normal"};
+				"msgtype" ->
+					{K,"system"};	
+				_ ->
+					{K,V}	
+			end
+		end,Attr),
+		{ok,J0,_} = rfc4627:decode("{}"),
+		J1 = rfc4627:set_field(J0,"groupid",list_to_binary(GroupId)),
+		J2 = rfc4627:set_field(J1,"groupname",<<"">>),
+		J3 = rfc4627:set_field(J2,"groupmember",[]),
+		J4 = rfc4627:set_field(J3,"type",<<"15">>),
+		Json = rfc4627:encode(J4),
+		Body = [{xmlelement,"body",[],[{xmlcdata,Json}]}],
+		RPacket = {X,E,RAttr,Body},
+		case ejabberd_router:route(To,From,RPacket) of
+			ok ->
+				?DEBUG("###### route_group_type15 OK :::> {From,To,RPacket}=~p",[{To,From,RPacket}]),
+				gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
+				{ok,ok};
+			Err ->
+				?DEBUG("###### route_group_type15 ERR=~p :::> {From,To,RPacket}=~p",[Err,{To,From,RPacket}]),
+				{error,Err}
+		end
+	end,
 	case get_user_list_by_group_id(Domain,GroupId) of 
+		{not_found,_,_,_,_} ->
+			SYS_Alert();
 		{ok,UserList,Groupmember,Groupname,Masklist} ->
 			case UserList of 
 				[] ->
-					%%TODO 解散了
-					%% <message id="xxxxx" from="yy@group.yuejian.net" to="123456@yuejian.net" type="normal" msgtype=“system”>
-					%%	<body>{groupid":"xx","groupname":"",groupmember":[],"type":"15"}</body>
-					%% </message>
-					{X,E,Attr,_} = Packet,
-					RAttr = lists:map(fun({K,V})->
-						case K of
-							"from" ->
-								{K,GroupId++"@"++GDomain};
-							"to" ->
-								{K,FromUser++"@"++Domain};
-							"type" ->
-								{K,"normal"};
-							"msgtype" ->
-								{K,"system"};	
-							_ ->
-								{K,V}	
-						end
-					end,Attr),
-					{ok,J0,_} = rfc4627:decode("{}"),
-					J1 = rfc4627:set_field(J0,"groupid",list_to_binary(GroupId)),
-					J2 = rfc4627:set_field(J1,"groupname",<<"">>),
-					J3 = rfc4627:set_field(J2,"groupmember",[]),
-					J4 = rfc4627:set_field(J3,"type",<<"15">>),
-					Json = rfc4627:encode(J4),
-					Body = [{xmlelement,"body",[],[{xmlcdata,Json}]}],
-					RPacket = {X,E,RAttr,Body},
-					case ejabberd_router:route(To,From,RPacket) of
-						ok ->
-							?DEBUG("###### route_group_type15 OK :::> {From,To,RPacket}=~p",[{To,From,RPacket}]),
-							gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
-							{ok,ok};
-						Err ->
-							?DEBUG("###### route_group_type15 ERR=~p :::> {From,To,RPacket}=~p",[Err,{To,From,RPacket}]),
-							{error,Err}
-					end;
+					SYS_Alert();
 				_ ->
 					[JSON] = aa_log:get_text_message_from_packet(Packet),	
 					?DEBUG("ROUTE_GROUP ::::> JSON=~p",[JSON]),
