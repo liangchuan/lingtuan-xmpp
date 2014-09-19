@@ -178,11 +178,15 @@ code_change(_OldVsn, State, _Extra) ->
 
 reload_group_user(Domain,GroupId) ->
 	Response = get_user_list_by_group_id(do,Domain,GroupId),
+	Group_cache_key = GroupId++"@"++Domain++"/group_cache",
 	case Response of 
 		{ok,[],[],[],[]} ->
 			skip;
+		{not_found,[],[],[],[]} ->
+			?DEBUG("reload_group_user__clean__gid=",[GroupId]),
+			gen_server:call(aa_hookhandler,{ecache_cmd,["DEL",Group_cache_key]});
 		{ok,_,_,_,_} ->
-			Group_cache_key = GroupId++"@"++Domain++"/group_cache",
+			?DEBUG("reload_group_user__set__gid=",[GroupId]),
 			gen_server:call(aa_hookhandler,{ecache_cmd,["SET",Group_cache_key,erlang:term_to_binary(Response)]});
 		_ ->
 			skip
@@ -253,7 +257,7 @@ get_user_list_by_group_id(do,Domain,GroupId) when is_list(Domain) ->
 										{ok,UserList,Groupmember,Groupname,Masklist}
 									catch
 										_:_->
-											{ok,[],[],[],[]}
+											{not_found,[],[],[],[]}
 									end;
 								_ ->
 									{ok,[],[],[],[]}

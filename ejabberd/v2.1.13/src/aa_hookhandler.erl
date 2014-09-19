@@ -135,9 +135,9 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 			case aa_group_chat:is_group_chat(To) of 
 				true ->
 					?DEBUG("###### send_group_chat_msg ###### From=~p ; Domain=~p",[From,Domain]),
-        				{_,"message",Attr,_} = Packet,
-        				D = dict:from_list(Attr),
-        				MT = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); _-> "" end,
+        			{_,"message",Attr,_} = Packet,
+        			D = dict:from_list(Attr),
+        			MT = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); _-> "" end,
 					case MT=:="msgStatus" of
 						true ->
 							?DEBUG("###### ack_group_chat_msg ###### Packet=~p",[Packet]),
@@ -154,7 +154,6 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 										not_found ->
 											skip;
 										{ok,<<"3">>} ->
-											%% 邀约请求消息
 											TK = "toinvitedlist",
 											{ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
@@ -177,7 +176,6 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 													end,ToList) 
 											end;
 										{ok,<<"7">>} ->
-											%% 活动管理者 同意报名用户参加消息 
 											TK = "applylist",
 											{ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
@@ -200,7 +198,6 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 													end,ToList) 
 											end;
 										{ok,<<"8">>} ->
-											%% 活动管理者 拒绝报名用户参加请求消息 
 											TK = "applylist",
 											{ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
@@ -223,7 +220,6 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 													end,ToList) 
 											end;
 										{ok,<<"13">>} ->
-											%% 活动管理者 拒绝报名用户参加请求消息 
 											TK = "grouplist",
 											{ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
@@ -246,7 +242,6 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 													end,ToList) 
 											end;
 										{ok,<<"15">>} ->
-											%% 活动管理者 拒绝报名用户参加请求消息 
 											TK = "grouplist",
 											{ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
@@ -458,7 +453,10 @@ route_3(From,#jid{user=User,server=Server}=To,Packet,J4B)->
 	{X,E,Attr,_} = Packet,
 	RAttr0 = lists:map(fun({K,V})-> 
 		case K of 
-			"id" -> {K,os:cmd("uuidgen")--"\n"};
+			"id" ->
+				{A,B,C} = now(),
+				UUID = integer_to_list(A)++integer_to_list(B)++integer_to_list(C),	
+				{K,UUID};
 			"to" -> {K,User++"@"++Server};
 			_-> {K,V} 
 		end 
