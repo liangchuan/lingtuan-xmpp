@@ -174,7 +174,7 @@ handle_call({handle_http,Req}, _From, State) ->
 					GID_str = case is_binary(GID) of true -> binary_to_list(GID); _-> GID end,
 					Domain_str = case is_binary(Domain) of true -> binary_to_list(Domain); _-> Domain end,
 					case aa_group_chat:reload_group_user(Domain_str,GID_str) of 
-						{ok,_,_,_,_} ->
+						{_,_,_,_,_} ->
 							http_response({#success{success=true,entity=list_to_binary("ok")},Req});
 						_ ->
 							http_response({#success{success=false,entity=list_to_binary("callback_error")},Req}) 
