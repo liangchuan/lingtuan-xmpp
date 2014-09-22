@@ -372,21 +372,33 @@ server_ack(old,#jid{user=FU,server=FD}=From,To,Packet,State) ->
         end.
 
 
-message_handler(#jid{user=FU,server=FD}=From,To,Packet,State) ->
+message_handler(#jid{user=FU,server=FD}=From,#jid{server=TD}=To,Packet,State) ->
+	%% TODO 特殊处理
+	%% <message id="xxxxx" from="yy@group.test.com" to="123456@test.com" type="normal" msgtype=“system”>
 	%% TODO 处理 message 消息，进来的都是 message
-	Domain = FD,
 	{_,"message",Attr,_} = Packet, 
 	?DEBUG("Attr=~p", [Attr] ), 
 	D = dict:from_list(Attr), 
-	%% SF = dict:fetch("from", D), 
-	%% [FU,FD] = string:tokens(SF,"@"),
-	Domain = FD,
 	T = dict:fetch("type", D), 
 	MT = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); _-> "" end,
+	Domain = case MT of 
+		"system" -> 
+			SF = dict:fetch("from", D), 
+			[_,B] = string:tokens(SF,"@"),
+			[C|_] = string:tokens(B,"."),
+			case C of 
+				"group" ->
+					TD;
+				_ ->
+					FD
+			end;
+		_ ->
+			FD
+	end,
 	SRC_ID_STR = case dict:is_key("id", D) of true -> dict:fetch("id", D); _ -> "" end,
 	?DEBUG("SRC_ID_STR=~p", [SRC_ID_STR] ),
 	ACK_FROM = case ejabberd_config:get_local_option({ack_from ,Domain}) of true -> true; _ -> false end,
-	?DEBUG("ack_from=~p ; Domain=~p ; T=~p ; MT=~p",[ACK_FROM,Domain,T,MT]),
+	?DEBUG("ack_from=~p ; Domain=~p ; T=~p ; MT=~p",[ACK_FROM,{FD,TD},T,MT]),
 	SYNCID = SRC_ID_STR++"@"++Domain, 
 	if ACK_FROM,MT=/=[],MT=/="msgStatus",FU=/="messageack" -> 
 		   ?DEBUG("==> SYNC_RES start => ID=~p",[SRC_ID_STR]), 
