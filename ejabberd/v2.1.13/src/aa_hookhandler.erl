@@ -384,9 +384,7 @@ message_handler(#jid{user=FU,server=FD}=From,#jid{server=TD}=To,Packet,State) ->
 	Domain = case MT of 
 		"system" -> 
 			%% SF = dict:fetch("from", D), 
-			SF = FD,
-			[_,B] = string:tokens(SF,"@"),
-			[C|_] = string:tokens(B,"."),
+			[C|_] = string:tokens(FD,"."),
 			case C of 
 				"group" ->
 					TD;
