@@ -396,7 +396,7 @@ message_handler(#jid{user=FU,server=FD}=From,#jid{server=TD}=To,Packet,State) ->
 			FD
 	end,
 	SRC_ID_STR = case dict:is_key("id", D) of true -> dict:fetch("id", D); _ -> "" end,
-	?DEBUG("SRC_ID_STR=~p", [SRC_ID_STR] ),
+	?DEBUG("SRC_ID_STR=~p ; other=~p", [SRC_ID_STR,{From,To,Domain}] ),
 	ACK_FROM = case ejabberd_config:get_local_option({ack_from ,Domain}) of true -> true; _ -> false end,
 	?DEBUG("ack_from=~p ; Domain=~p ; T=~p ; MT=~p",[ACK_FROM,{FD,TD},T,MT]),
 	SYNCID = SRC_ID_STR++"@"++Domain, 
@@ -465,12 +465,28 @@ ack_task(ID,From,To,Packet)->
 
 
 route_3(From,#jid{user=User,server=Server}=To,Packet,J4B)->
+	B4J = binary_to_list(J4B),
+	{ok,Obj,_} = rfc4627:decode(B4J),
+	DT = case rfc4627:get_field(Obj,"type") of 
+		{ok,NN} ->
+			NN;
+		_ ->
+			skip
+	end,
 	{X,E,Attr,_} = Packet,
 	RAttr0 = lists:map(fun({K,V})-> 
 		case K of 
 			"id" ->
 				{A,B,C} = now(),
 				UUID = integer_to_list(A)++integer_to_list(B)++integer_to_list(C),	
+				case DT of
+					<<"13">> ->
+						?WARNING_MSG("dddddddddddddd dt=~p ; uuid=~p",[DT,UUID]);
+					<<"15">> ->
+						?WARNING_MSG("dddddddddddddd dt=~p ; uuid=~p",[DT,UUID]);
+					_ ->
+						skip
+				end,
 				{K,UUID};
 			"to" -> {K,User++"@"++Server};
 			_-> {K,V} 
