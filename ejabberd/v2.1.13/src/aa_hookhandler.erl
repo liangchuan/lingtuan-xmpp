@@ -383,7 +383,8 @@ message_handler(#jid{user=FU,server=FD}=From,#jid{server=TD}=To,Packet,State) ->
 	MT = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); _-> "" end,
 	Domain = case MT of 
 		"system" -> 
-			SF = dict:fetch("from", D), 
+			%% SF = dict:fetch("from", D), 
+			SF = FD,
 			[_,B] = string:tokens(SF,"@"),
 			[C|_] = string:tokens(B,"."),
 			case C of 
