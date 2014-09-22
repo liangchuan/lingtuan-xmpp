@@ -372,14 +372,14 @@ server_ack(old,#jid{user=FU,server=FD}=From,To,Packet,State) ->
         end.
 
 
-message_handler(From,To,Packet,State) ->
+message_handler(#jid{user=FU,server=FD}=From,To,Packet,State) ->
 	%% TODO 处理 message 消息，进来的都是 message
-	%% Domain = FD,
+	Domain = FD,
 	{_,"message",Attr,_} = Packet, 
 	?DEBUG("Attr=~p", [Attr] ), 
 	D = dict:from_list(Attr), 
-	SF = dict:fetch("from", D), 
-	[FU,FD] = string:tokens(SF,"@"),
+	%% SF = dict:fetch("from", D), 
+	%% [FU,FD] = string:tokens(SF,"@"),
 	Domain = FD,
 	T = dict:fetch("type", D), 
 	MT = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); _-> "" end,
