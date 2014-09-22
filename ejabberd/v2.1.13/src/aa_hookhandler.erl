@@ -469,6 +469,7 @@ route_3(From,#jid{user=User,server=Server}=To,Packet,J4B)->
 	{ok,Obj,_} = rfc4627:decode(B4J),
 	DT = case rfc4627:get_field(Obj,"type") of 
 		{ok,NN} ->
+			?WARNING_MSG("aaaaaaaaaaaaaaa type=~p",[NN]),
 			NN;
 		_ ->
 			skip
