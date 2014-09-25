@@ -287,6 +287,31 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 														route_3(To,JID3,Packet,J4B)	
 													end,ToList) 
 											end;
+										{ok,<<"21">>} ->
+											%% 140925 : add by liangc 
+											%% 宇庭新需求：
+											%% ejabber服务器需要给applylist列表发送的消息格式（ejabber转发时去掉applylist）
+											TK = "applylist",
+											{ok,ToList} = rfc4627:get_field(JO,TK),
+											case rfc4627:get_field(JO,TK) of
+												not_found ->
+													skip;
+												{ok,ToList} ->
+													?DEBUG("T21T21T21 ::::> ToList=~p",[ToList]),
+													{obj,TL3} = JO,
+													TL3_1=lists:map(fun({K3,V3})-> case K3=:=TK of true->skip;false->{K3,V3} end end,TL3),
+													TL3_2=[X||X<-TL3_1,X=/=skip],
+													JO_1 = {obj,TL3_2},
+													?DEBUG("T21T21T21 ::::> JO_1=~p",[JO_1]), 
+													J4B = list_to_binary(rfc4627:encode(JO_1)),
+													?DEBUG("T21T21T21 ::::> J4B=~p",[J4B]), 
+													lists:foreach(fun(To3) ->
+														UID = binary_to_list(To3),
+														JID3=#jid{user=UID,server=Domain,luser=UID,
+																  lserver=Domain,resource=[],lresource=[]},
+														route_3(From,JID3,Packet,J4B)	
+													end,ToList) 
+											end;
 										_ ->
 											case TUser =:= "0" of
 												true ->
