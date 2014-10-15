@@ -354,7 +354,36 @@ public class LogNode {
 //			     </message>			
 				String username = json.getString("username");
 				return username+"拒绝了您的求约";
+			}else if("10".equals(type)){
+				//add by liangc 140924
+				//<11>帮问消息：           apns推送内容（用户昵称想帮您介绍一个朋友 ）   msgtype  0 问帮约对象  1问邀请对象
+				// <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+				//<body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"10","name":"用户名","gender":"1","image":"url","id":"用户id",“content”:"帮问内容",",'msgtype":"0"}
+				//</body>
+				//</message>
+				String username = json.getString("username");
+				return username+"想帮您介绍一个朋友";
+			}else if("11".equals(type)){
+				//add by liangc 140924
+				//<12>帮问的同意消息：    apns推送内容（用户昵称同意了您的介绍）   msgtype  0 帮约对象回复  1邀请对象回复
+				// <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+				//<body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"11","name":"用户名","gender":"1","image":"url","id":"用户id",“content”:"帮问内容",",'msgtype":"0"}
+				//</body>
+				//</message>
+				String username = json.getString("username");
+				return username+"同意了您的介绍";
+			}else if("12".equals(type)){
+				//add by liangc 140924
+				//<13>帮问的拒绝消息：    apns推送内容（抱歉，用户昵称暂时不想认识这个朋友，可能是机缘尚未成熟 ）   msgtype  0 帮约对象回复  1邀请对象回复
+				// <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+				//<body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"12","name":"用户名","gender":"1","image":"url","id":"用户id",“content”:"帮问内容",",'msgtype":"0"}
+				//</body>
+				//</message>	
+				String username = json.getString("username");
+				return "抱歉，"+username+"暂时不想认识这个朋友，可能是机缘尚未成熟";
 			}
+			
+			
 			
 		}else if("groupchat".equalsIgnoreCase(msgtype)){
 //			2.多人会话聊天信息：groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）
@@ -449,8 +478,10 @@ public class LogNode {
 //			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"0"}
 //			     </body>
 //			     </message>
-				String username = json.getString("username");
-				return username+"请求您加为好友";
+				//2014-10-15 : modify by liangc : 宇庭说这个地方取消推送
+				//这个消息原先针对ios是做过apns推送的，现在需要把这个apns推送去掉，type=0的system消息不坐apns推送。
+//				String username = json.getString("username");
+//				return username+"请求您加为好友";
 			}else if("1".equals(type)){
 //			     <2>好友请求确认消息（ejabber不处理)------------------  logo+约您妹  xxx已经通过了您的好友请求
 //			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
@@ -583,8 +614,19 @@ public class LogNode {
 //			     <body>{"userid":"system","type":"16","sort":"种类（吃喝玩乐）","guest":"1",createrid="xx" creatername="张三" createrimage="http://wwww.1.jpg",“createrage”:"23","creatergender":"男",creatersightml":"个性签名","message":"邀请语","address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id","property":"公开","price":"200",“detail”:"商家描述","image":"商家图片url","invitedlist":[{"image":"邀请用户头像url","id":"123456","gender":"1"},{"image":"邀请用户头像url","id":"123456","gender":"1"}]}
 //			     </body>
 //			     </message>
+			}else if("21".equals(type)){
+				//add by liangc 140925
+				//<22>邀约活动修改提醒消息：  字段说明   modifytype   0  修改了时间  1修改了地点        apns推送内容（您参与的邀约活动有所变动，请查看详情）   
+				//http发送消息格式
+				//<message id="xxxxx" from="xx@test.com" to="0@group.test.com type="normal" msgtype=“system”>
+				//<body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg&quot;,  "usergender":"0",  "type":"21", "sort":"种类（吃喝玩乐）","guest":"1",createrid="xx" creatername="张三" createrimage="http://wwww.1.jpg&quot;, “createrage”:"23","creatergender":"男",creatersightml":"个性签名","message":"邀请语","address":"商家地址","time":"发起活动时间（时间戳）","id":"活动id","modifytype":"0","applylist":[”123456","123456","123456"]}
+				//</body>
+				//</message>
+				return "您参与的邀约活动有所变动，请查看详情";
 			}
 		}
 		return null;
 	}
 }
+
+
