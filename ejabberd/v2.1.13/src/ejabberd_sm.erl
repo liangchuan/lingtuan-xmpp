@@ -577,6 +577,7 @@ route_message(#jid{user=FUser,server=FDomain}=From, #jid{user=TUser,server=TDoma
 							  %%   		Packet
 							  %% end,
 			    		      %% Pid ! {route, From, To, RPacket}
+							
 			    		      Pid ! {route, From, To, Packet}
 			    	      end;
 			    	 %% Ignore other priority:

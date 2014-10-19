@@ -242,43 +242,43 @@ get_user_list_by_group_id(do,Domain,GroupId) when is_list(Domain) ->
 	?DEBUG("###### get_user_list_by_group_id :::> HTTP_TARGET=~p ; request=~p",[HTTPTarget,Form]),
 	case httpc:request(post,{ HTTPTarget ,[], ?HTTP_HEAD , Form },[],[] ) of   
         	{ok, {_,_,Body}} ->
-			DBody = rfc4627:decode(Body),
-			{_,Log,_} = DBody,
-			?DEBUG("###### get_user_list_by_group_id_response=~p",[Body]),
-			?DEBUG("###### get_user_list_by_group_id_decode=~p",[DBody]),
-			?DEBUG("###### get_user_list_by_group_id_log=~p",[Log]),
- 			case DBody of
- 				{ok,Obj,_Re} -> 
-					case rfc4627:get_field(Obj,"success") of
-						{ok,true} ->
-							case rfc4627:get_field(Obj,"entity") of
-								{ok,Entity} ->
-									?DEBUG("###### success=true get_user_list_by_group_id :::> entity=~p",[Entity]),
-									try
-										{ok,UserList} = rfc4627:get_field(Entity,"userlist"),
-										{ok,Groupmember} = rfc4627:get_field(Entity,"groupmember"),
-										{ok,Masklist} = rfc4627:get_field(Entity,"masklist"),
-										{ok,Groupname} = rfc4627:get_field(Entity,"groupname"),
-										{ok,UserList,Groupmember,Groupname,Masklist}
-									catch
-										_:_->
-											{not_found,[],[],[],[]}
-									end;
-								_ ->
-									{ok,[],[],[],[]}
-							end;
-						_ ->
-							{ok,Entity} = rfc4627:get_field(Obj,"entity"),
-							?DEBUG("###### success=false get_user_list_by_group_id :::> entity=~p",[Entity]),
-							{fail,Entity}
-					end;
- 				Error -> 
-					?DEBUG("###### get_user_list_by_group_id_error=~p",[Error]),
-					{error,Error}
- 			end ;
+				DBody = rfc4627:decode(Body),
+				{_,Log,_} = DBody,
+				?DEBUG("###### get_user_list_by_group_id_response=~p",[Body]),
+				?DEBUG("###### get_user_list_by_group_id_decode=~p",[DBody]),
+				?DEBUG("###### get_user_list_by_group_id_log=~p",[Log]),
+ 				case DBody of
+ 					{ok,Obj,_Re} -> 
+						case rfc4627:get_field(Obj,"success") of
+							{ok,true} ->
+								case rfc4627:get_field(Obj,"entity") of
+									{ok,Entity} ->
+										?DEBUG("###### success=true get_user_list_by_group_id :::> entity=~p",[Entity]),
+										try
+											{ok,UserList} = rfc4627:get_field(Entity,"userlist"),
+											{ok,Groupmember} = rfc4627:get_field(Entity,"groupmember"),
+											{ok,Masklist} = rfc4627:get_field(Entity,"masklist"),
+											{ok,Groupname} = rfc4627:get_field(Entity,"groupname"),
+											{ok,UserList,Groupmember,Groupname,Masklist}
+										catch
+											_:_->
+												{not_found,[],[],[],[]}
+										end;
+									_ ->
+										{ok,[],[],[],[]}
+								end;
+							_ ->
+								{ok,Entity} = rfc4627:get_field(Obj,"entity"),
+								?DEBUG("###### success=false get_user_list_by_group_id :::> entity=~p",[Entity]),
+								{fail,Entity}
+						end;
+ 					Error -> 
+						?DEBUG("###### get_user_list_by_group_id_error=~p",[Error]),
+						{error,Error}
+ 				end ;
         	{error, Reason} ->
- 			?INFO_MSG("[~ERROR~] cause ~p~n",[Reason]),
-			{error,Reason}
+ 				?ERROR_MSG("[aa_group_chat__http_callback__ERROR] cause ~p~n",[Reason]),
+				{error,Reason}
      	end.
 
 route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,GroupId,Groupmember,Groupname,Masklist) ->

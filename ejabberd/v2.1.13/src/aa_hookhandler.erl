@@ -155,7 +155,7 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 											skip;
 										{ok,<<"3">>} ->
 											TK = "toinvitedlist",
-											{ok,ToList} = rfc4627:get_field(JO,TK),
+											%% {ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
 												not_found ->
 													skip;
@@ -177,7 +177,7 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 											end;
 										{ok,<<"7">>} ->
 											TK = "applylist",
-											{ok,ToList} = rfc4627:get_field(JO,TK),
+											%% {ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
 												not_found ->
 													skip;
@@ -199,7 +199,7 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 											end;
 										{ok,<<"8">>} ->
 											TK = "applylist",
-											{ok,ToList} = rfc4627:get_field(JO,TK),
+											%% {ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
 												not_found ->
 													skip;
@@ -221,7 +221,7 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 											end;
 										{ok,<<"13">>} ->
 											TK = "grouplist",
-											{ok,ToList} = rfc4627:get_field(JO,TK),
+											%% {ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
 												not_found ->
 													skip;
@@ -243,7 +243,7 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 											end;
 										{ok,<<"15">>} ->
 											TK = "grouplist",
-											{ok,ToList} = rfc4627:get_field(JO,TK),
+											%% {ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
 												not_found ->
 													skip;
@@ -267,7 +267,7 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 											%% 140823 : add by liangc 
 											%% 宇庭新需求：社交圈新动态消息（ejabber需要处理）      apns推送内容（无） 
 											TK = "grouplist",
-											{ok,ToList} = rfc4627:get_field(JO,TK),
+											%% {ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
 												not_found ->
 													skip;
@@ -292,7 +292,7 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 											%% 宇庭新需求：
 											%% ejabber服务器需要给applylist列表发送的消息格式（ejabber转发时去掉applylist）
 											TK = "applylist",
-											{ok,ToList} = rfc4627:get_field(JO,TK),
+											%% {ok,ToList} = rfc4627:get_field(JO,TK),
 											case rfc4627:get_field(JO,TK) of
 												not_found ->
 													skip;
