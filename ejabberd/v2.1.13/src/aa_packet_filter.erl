@@ -60,7 +60,16 @@ do({r141016,Domain,Packet})->
 					?INFO_MSG("aa_packet_filter__JSON==>~p",[JSON]),
 					{ok,JO,_} = rfc4627:decode(erlang:list_to_binary(JSON)),
 					?INFO_MSG("aa_packet_filter__JO==>~p",[JO]),
-					case rfc4627:get_field(JO,"type") of
+						
+					TYPE = case rfc4627:get_field(JO,"type") of
+						not_found ->
+							not_found;
+						{ok,T0} when is_binary(T0) ->
+							{ok,T0};
+						{ok,T1} when is_integer(T1) ->
+							{ok,integer_to_binary(T1)}	
+					end,					   
+					case TYPE of
 						{ok,<<"0">>} ->	
 							?INFO_MSG("aa_packet_filter__type==>~p",[0]),
 							JO_1 = set_mask(Domain,FromBin,ToBin,JO),	
