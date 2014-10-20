@@ -53,19 +53,26 @@ do({r141016,Domain,Packet})->
 			MT = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); _-> "" end,
 			FromBin = list_to_binary( case dict:is_key("from",D) of true-> dict:fetch("from",D); _-> "" end ),
 			ToBin = list_to_binary( case dict:is_key("to",D) of true-> dict:fetch("to",D); _-> "" end ),
+			?INFO_MSG("aa_packet_filter__mt==>~p",[MT]),
 			case MT =:= "normalchat" of 
 				true ->
 					[JSON] = aa_log:get_text_message_from_packet(Packet),	
+					?INFO_MSG("aa_packet_filter__JSON==>~p",[JSON]),
 					{ok,JO,_} = rfc4627:decode(erlang:list_to_binary(JSON)),
+					?INFO_MSG("aa_packet_filter__JO==>~p",[JO]),
 					case rfc4627:get_field(JO,"type") of
 						{ok,<<"0">>} ->	
+							?INFO_MSG("aa_packet_filter__type==>~p",[0]),
 							JO_1 = set_mask(Domain,FromBin,ToBin,JO),	
+							?INFO_MSG("aa_packet_filter__JO_1==>~p",[JO_1]),
 							JO_2 = set_friend_log(Domain,FromBin,ToBin,JO_1),
+							?INFO_MSG("aa_packet_filter__JO_2==>~p",[JO_2]),
 							J4B = list_to_binary(rfc4627:encode(JO_2)),
 							?INFO_MSG("aa_packet_filter__Body==>~p",[J4B]),
 							Body = [{xmlelement,"body",[],[{xmlcdata,J4B}]}],
 							{X,E,Attr,Body};
-						_ ->
+						T ->
+							?INFO_MSG("aa_packet_filter__type==>~p",[T]),
 							Packet
 					end;
 				_ ->
@@ -111,7 +118,7 @@ call_http(Domain,Method,FromBin,ToBin)->
 	SN = erlang:integer_to_list(M*1000000000000+S*1000000+SS),
  	HTTPTarget =  ejabberd_config:get_local_option({http_server,Domain}),
 	ParamObj = {obj,[ {"sn",SN}, {"service",<<"ejabberd">>}, {"method",Method},{"params",{obj,[{"from",FromBin},{"to",ToBin}]}}]}, 
-	?INFO_MSG("aa_packet_filter__call_http__paramObj=~p ; method=~p ; domain=~p",[ParamObj,Method,Domain]),
+	?INFO_MSG("aa_packet_filter__call_http__paramObj=~p ; method=~p ; domain=~p ~nhttp_url=~p",[ParamObj,Method,Domain,HTTPTarget]),
 	Form = "body="++rfc4627:encode(ParamObj),
 	case httpc:request(post,{ HTTPTarget ,[], ?HTTP_HEAD , Form },[],[] ) of
 		{ok, {_,_,Body}} ->
