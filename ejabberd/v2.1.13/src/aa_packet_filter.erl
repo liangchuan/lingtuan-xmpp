@@ -60,30 +60,14 @@ do({r141016,Domain,Packet})->
 					?INFO_MSG("aa_packet_filter__JSON==>~p",[JSON]),
 					{ok,JO,_} = rfc4627:decode(erlang:list_to_binary(JSON)),
 					?INFO_MSG("aa_packet_filter__JO==>~p",[JO]),
-						
-					TYPE = case rfc4627:get_field(JO,"type") of
-						not_found ->
-							not_found;
-						{ok,T0} when is_binary(T0) ->
-							{ok,T0};
-						{ok,T1} when is_integer(T1) ->
-							{ok,integer_to_binary(T1)}	
-					end,					   
-					case TYPE of
-						{ok,<<"0">>} ->	
-							?INFO_MSG("aa_packet_filter__type==>~p",[0]),
-							JO_1 = set_mask(Domain,FromBin,ToBin,JO),	
-							?INFO_MSG("aa_packet_filter__JO_1==>~p",[JO_1]),
-							JO_2 = set_friend_log(Domain,FromBin,ToBin,JO_1),
-							?INFO_MSG("aa_packet_filter__JO_2==>~p",[JO_2]),
-							J4B = list_to_binary(rfc4627:encode(JO_2)),
-							?INFO_MSG("aa_packet_filter__Body==>~p",[J4B]),
-							Body = [{xmlelement,"body",[],[{xmlcdata,J4B}]}],
-							{X,E,Attr,Body};
-						T ->
-							?INFO_MSG("aa_packet_filter__type==>~p",[T]),
-							Packet
-					end;
+					JO_1 = set_mask(Domain,FromBin,ToBin,JO),	
+					?INFO_MSG("aa_packet_filter__JO_1==>~p",[JO_1]),
+					JO_2 = set_friend_log(Domain,FromBin,ToBin,JO_1),
+					?INFO_MSG("aa_packet_filter__JO_2==>~p",[JO_2]),
+					J4B = list_to_binary(rfc4627:encode(JO_2)),
+					?INFO_MSG("aa_packet_filter__Body==>~p",[J4B]),
+					Body = [{xmlelement,"body",[],[{xmlcdata,J4B}]}],
+					{X,E,Attr,Body};
 				_ ->
 					Packet
 			end;
