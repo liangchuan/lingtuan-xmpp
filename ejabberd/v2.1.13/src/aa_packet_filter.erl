@@ -82,7 +82,7 @@ set_mask(Domain,FromBin,ToBin,JO) ->
 		{ok,_} ->
 			JO;
 		_ ->
-			case call_http(Domain,<<"mask">>,FromBin,ToBin) of 
+			case call_http(Domain,<<"get_mask_user">>,FromBin,ToBin) of 
 				{ok,Entity} ->	
 					{ok,Mask} = rfc4627:get_field(Entity,"mask"),
 					rfc4627:set_field(JO,"mask",Mask);
@@ -96,7 +96,7 @@ set_friend_log(Domain,FromBin,ToBin,JO) ->
 		{ok,_} ->
 			JO;
 		_ ->
-			case call_http(Domain,<<"friend_log">>,FromBin,ToBin) of 
+			case call_http(Domain,<<"get_relation">>,FromBin,ToBin) of 
 				{ok,Entity} ->	
 					{ok,Friend_log} = rfc4627:get_field(Entity,"friend_log"),
 					rfc4627:set_field(JO,"friend_log",Friend_log);
