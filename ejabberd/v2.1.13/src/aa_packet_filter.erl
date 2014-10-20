@@ -43,7 +43,7 @@
 %% 
 %% 							   我们客户端接收到消息以后根据friend_log字段来判断关系。
 
-do({r141016,Domain,Packet})->
+do({r141016,#jid{server=Domain,user=FU},#jid{user=TU},Packet})->
 	[_,E|_] = tuple_to_list(Packet),
 	OrigPacket = case E of 
 		"message" ->
@@ -51,8 +51,10 @@ do({r141016,Domain,Packet})->
 			?DEBUG("Attr=~p", [Attr] ),
 			D = dict:from_list(Attr),
 			MT = case dict:is_key("msgtype",D) of true-> dict:fetch("msgtype",D); _-> "" end,
-			FromBin = list_to_binary( case dict:is_key("from",D) of true-> dict:fetch("from",D); _-> "" end ),
-			ToBin = list_to_binary( case dict:is_key("to",D) of true-> dict:fetch("to",D); _-> "" end ),
+			%% FromBin = list_to_binary( case dict:is_key("from",D) of true-> dict:fetch("from",D); _-> "" end ),
+			%% ToBin = list_to_binary( case dict:is_key("to",D) of true-> dict:fetch("to",D); _-> "" end ),
+			FromBin = list_to_binary(FU++"@"++Domain), 
+			ToBin = list_to_binary(TU++"@"++Domain),
 			?INFO_MSG("aa_packet_filter__mt==>~p",[MT]),
 			case MT =:= "normalchat" of 
 				true ->

@@ -309,9 +309,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
-do_route(#jid{server=Domain}=OrigFrom, OrigTo, Packet) ->
+do_route(OrigFrom, OrigTo, Packet) ->
 	%% 2014-10-19 : 应对 16 号的屏蔽需求
-	OrigPacket = aa_packet_filter:do({r141016,Domain,Packet}), 
+	OrigPacket = aa_packet_filter:do({r141016,OrigFrom,OrigTo,Packet}), 
     ?DEBUG("route~n\tfrom ~p~n\tto ~p~n\tpacket ~p~n", [OrigFrom, OrigTo, OrigPacket]),
     HookRes = ejabberd_hooks:run_fold(filter_packet, {OrigFrom, OrigTo, OrigPacket}, []), 
     ?DEBUG("do_route_hook_res hookRes=~p ; packet=~p", [HookRes,OrigPacket]),
