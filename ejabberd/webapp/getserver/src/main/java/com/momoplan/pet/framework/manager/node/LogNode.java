@@ -261,12 +261,17 @@ public class LogNode {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		System.out.println("123"+null);
+		String str = "{\"mask2\":1}";
 	}
 	private String build_push_msg(String msgtype ,String jmsg) throws Exception{
 		JSONObject json = new JSONObject(jmsg);
 		String type = json.getString("type");
-		if("normalchat".equalsIgnoreCase(msgtype)){
+		//0 未屏蔽  1屏蔽   如下所示：
+		String mask = "0";
+		if(json.has("mask")){
+			mask = json.getString(mask);
+		}
+		if("normalchat".equalsIgnoreCase(msgtype) && (!"1".equals(mask)) ){
 //			1.单人聊天信息:         
 			if("0".equals(type)){
 //			 <1>文本消息： ------------------logo+约您妹  用户昵称：最新聊天的语言（最多显示61个汉字）
@@ -482,6 +487,7 @@ public class LogNode {
 				//这个消息原先针对ios是做过apns推送的，现在需要把这个apns推送去掉，type=0的system消息不坐apns推送。
 //				String username = json.getString("username");
 //				return username+"请求您加为好友";
+				return null;
 			}else if("1".equals(type)){
 //			     <2>好友请求确认消息（ejabber不处理)------------------  logo+约您妹  xxx已经通过了您的好友请求
 //			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
