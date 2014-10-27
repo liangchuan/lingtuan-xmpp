@@ -19,7 +19,7 @@
          code_change/3]).
 
 -record(state, {}).
--record(success,{success=true,entity}).
+-record(success,{sn,success=true,entity}).
 
 %%%===================================================================
 %%% API
@@ -40,9 +40,7 @@ handle_http(Req) ->
 
 http_response({S,Req}) ->
 	try
-		{M,S1,SS1} = now(),
-		SN_T = erlang:integer_to_list(M*1000000000000+S1*1000000+SS1),
-		Res = {obj,[{sn,list_to_binary(SN_T)},{success,S#success.success},{entity,S#success.entity}]},
+		Res = {obj,[{sn,S#success.sn},{success,S#success.success},{entity,S#success.entity}]},
 		?DEBUG("Res_obj=~p",[Res]),
 		J = rfc4627:encode(Res),
 		?DEBUG("Res_json=~p",[J]),
@@ -110,11 +108,18 @@ handle_call({handle_http,Req}, _From, State) ->
 		{ok,Obj,_Re} = rfc4627:decode(Body),
 		?INFO_MSG("http ::> body=~p",[Body]),	 
 		{ok,M} = rfc4627:get_field(Obj, "method"),
+		SN = case rfc4627:get_field(Obj, "sn") of 
+			{ok,SN_115} ->
+				binary_to_list(SN_115);
+			_ ->	
+				{M,S1,SS1} = now(),
+				integer_to_list(M*1000000000000+S1*1000000+SS1) 
+		end,
 		S = case rfc4627:get_field(Obj, "service") of {ok,SS} -> binary_to_list(SS); _-> none end,
 		case binary_to_list(M) of 
 			"process_counter" ->
 				Counter = aa_process_counter:process_counter(),
-				http_response({#success{success=true,entity=Counter},Req});
+				http_response({#success{sn=list_to_binary(SN),success=true,entity=Counter},Req});
 			"add" when S =:= "blacklist" ->
 				?INFO_MSG("http blacklist.add ::> ~p",[Args]),
 				try
@@ -122,11 +127,11 @@ handle_call({handle_http,Req}, _From, State) ->
 					{ok,From} = rfc4627:get_field(P, "from"),
 					{ok,To} = rfc4627:get_field(P, "to"),
 					aa_blacklist:add(From,To),
-					http_response({#success{success=true,entity=list_to_binary("ok")},Req}) 
+					http_response({#success{sn=list_to_binary(SN),success=true,entity=list_to_binary("ok")},Req}) 
 				catch 
 					_:_->
 						Err = erlang:get_stacktrace(),
-						http_response({#success{success=false,entity=list_to_binary(Err)},Req}) 
+						http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary(Err)},Req}) 
 				end;
 			"remove" when S =:= "blacklist" ->
 				?INFO_MSG("http blacklist.remove ::> ~p",[Args]),
@@ -135,11 +140,11 @@ handle_call({handle_http,Req}, _From, State) ->
 					{ok,From} = rfc4627:get_field(P, "from"),
 					{ok,To} = rfc4627:get_field(P, "to"),
 					aa_blacklist:remove(From,To),
-					http_response({#success{success=true,entity=list_to_binary("ok")},Req}) 
+					http_response({#success{sn=list_to_binary(SN),success=true,entity=list_to_binary("ok")},Req}) 
 				catch 
 					_:_->
 						Err = erlang:get_stacktrace(),
-						http_response({#success{success=false,entity=list_to_binary(Err)},Req}) 
+						http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary(Err)},Req}) 
 				end;
 			"get" when S =:= "blacklist" ->
 				?INFO_MSG("http blacklist.get ::> ~p",[Args]),
@@ -147,11 +152,11 @@ handle_call({handle_http,Req}, _From, State) ->
 					{ok,P} = rfc4627:get_field(Obj, "params"),
 					{ok,JID} = rfc4627:get_field(P, "jid"),
 					BList = aa_blacklist:get_list(JID),
-					http_response({#success{success=true,entity=BList},Req}) 
+					http_response({#success{sn=list_to_binary(SN),success=true,entity=BList},Req}) 
 				catch 
 					_:_->
 						Err = erlang:get_stacktrace(),
-						http_response({#success{success=false,entity=list_to_binary(Err)},Req}) 
+						http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary(Err)},Req}) 
 				end;
 			"with" when S =:= "blacklist" ->
 				?INFO_MSG("http blacklist.with ::> ~p",[Args]),
@@ -159,11 +164,11 @@ handle_call({handle_http,Req}, _From, State) ->
 					{ok,P} = rfc4627:get_field(Obj, "params"),
 					{ok,JID} = rfc4627:get_field(P, "jid"),
 					BList = aa_blacklist:get_with(JID),
-					http_response({#success{success=true,entity=BList},Req}) 
+					http_response({#success{sn=list_to_binary(SN),success=true,entity=BList},Req}) 
 				catch 
 					_:_->
 						Err = erlang:get_stacktrace(),
-						http_response({#success{success=false,entity=list_to_binary(Err)},Req}) 
+						http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary(Err)},Req}) 
 				end;
 			"reload" when S =:= "group_user" ->
 				?INFO_MSG("http group_user.reload ::> ~p",[Args]),
@@ -175,18 +180,38 @@ handle_call({handle_http,Req}, _From, State) ->
 					Domain_str = case is_binary(Domain) of true -> binary_to_list(Domain); _-> Domain end,
 					case aa_group_chat:reload_group_user(Domain_str,GID_str) of 
 						{_,_,_,_,_} ->
-							http_response({#success{success=true,entity=list_to_binary("ok")},Req});
+							http_response({#success{sn=list_to_binary(SN),success=true,entity=list_to_binary("ok")},Req});
 						_ ->
-							http_response({#success{success=false,entity=list_to_binary("callback_error")},Req}) 
+							http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary("callback_error")},Req}) 
 					end
 				catch 
 					_:_->
 						Err = erlang:get_stacktrace(),
 						?ERROR_MSG("group_user.reload.error ~p",[Err]),
-						http_response({#success{success=false,entity=exception},Req}) 
+						http_response({#success{sn=list_to_binary(SN),success=false,entity=exception},Req}) 
+				end;
+			"reload" when S =:= "mask" ->
+				?INFO_MSG("http mask.reload ::> ~p",[Args]),
+				try
+					{ok,P} = rfc4627:get_field(Obj, "params"),
+					{ok,MASK_FROM} = rfc4627:get_field(P, "from"),
+					{ok,MASK_TO} = rfc4627:get_field(P, "to"),
+					MASK_FROM_STR = case is_binary(MASK_FROM) of true -> binary_to_list(MASK_FROM); _-> MASK_FROM end,
+					MASK_TO_STR = case is_binary(MASK_TO) of true -> binary_to_list(MASK_TO); _-> MASK_TO end,
+					case aa_packet_filter:reload(mask,MASK_FROM_STR,MASK_TO_STR) of 
+						ok ->
+							http_response({#success{sn=list_to_binary(SN),success=true,entity=list_to_binary("ok")},Req});
+						_ ->
+							http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary("callback_error")},Req}) 
+					end
+				catch 
+					_:_->
+						Err = erlang:get_stacktrace(),
+						?ERROR_MSG("reload__mask.error sn=~p ; exception=~p",[SN,Err]),
+						http_response({#success{sn=list_to_binary(SN),success=false,entity=exception},Req}) 
 				end;
 			_ ->
-				http_response({#success{success=false,entity=list_to_binary("method undifine")},Req})
+				http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary("method undifine")},Req})
 		end
 	catch
 		_:Reason -> 

@@ -1,6 +1,6 @@
 -module(aa_packet_filter).
 
--export([do/1]).
+-export([do/1,reload/3]).
 
 -define(HTTP_HEAD,"application/x-www-form-urlencoded").
 -include("ejabberd.hrl").
@@ -79,18 +79,34 @@ do({r141016,#jid{server=Domain,user=FU},#jid{user=TU},Packet})->
 	?INFO_MSG("aa_packet_filter__result==>~p",[OrigPacket]),
 	OrigPacket.
 
+get_jid(JIDStr) ->
+	[U,DR] = string:tokens(JIDStr,"@"),
+	[D|_] = string:tokens(DR,"/"),
+	U++"@"++D.
+
 set_mask(Domain,FromBin,ToBin,JO) ->
 	case rfc4627:get_field(JO,"mask") of 
 		{ok,_} ->
 			JO;
 		_ ->
-			case call_http(Domain,<<"get_mask_user">>,FromBin,ToBin) of 
-				{ok,Entity} ->	
-					{ok,Mask} = rfc4627:get_field(Entity,"mask"),
-					rfc4627:set_field(JO,"mask",Mask);
+			%% 先到缓存里找，如果没有则回调并初始化缓存;
+			[FromStr,ToStr]	= [get_jid(binary_to_list(FromBin)),get_jid(binary_to_list(ToBin))],
+			Key = "mask__"++FromStr++ToStr,
+			case gen_server:call(aa_hookhandler,{ecache_cmd,["GET",Key]}) of
+				{ok,Bin} when erlang:is_binary(Bin) ->
+					?INFO_MSG("aa_packet_filter__set_mask__on_cache key=~p ; mask=~p",[Key,Bin]),
+					rfc4627:set_field(JO,"mask",Bin);
 				_ ->
-					JO
-			end
+					case call_http(Domain,<<"get_mask_user">>,FromBin,ToBin) of 
+						{ok,Entity} ->	
+							{ok,Mask} = rfc4627:get_field(Entity,"mask"),
+							?INFO_MSG("aa_packet_filter__set_mask__on_http key=~p ; mask=~p",[Key,Mask]),
+							gen_server:call(aa_hookhandler,{ecache_cmd,["SET",Key,Mask]}),
+							rfc4627:set_field(JO,"mask",Mask);
+						_ ->
+							JO
+					end
+			end 
 	end.	
 
 set_friend_log(Domain,FromBin,ToBin,JO) ->
@@ -143,4 +159,12 @@ call_http(Domain,Method,FromBin,ToBin)->
 			?ERROR_MSG("[aa_packet_filter__call_http__exception] sn=~p ; exception=~p",[SN,Reason]),
 			{error,Reason}
 	end.
+
+reload(mask,FromStr,ToStr) ->
+	[From,To] = [get_jid(FromStr),get_jid(ToStr)],		
+	Key = "mask__"++From++To,
+	gen_server:call(aa_hookhandler,{ecache_cmd,["DEL",Key]}),
+	?INFO_MSG("reload__mask__key=~p",[Key]),
+	ok.
+
 
