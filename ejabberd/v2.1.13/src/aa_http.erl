@@ -112,8 +112,8 @@ handle_call({handle_http,Req}, _From, State) ->
 			{ok,SN_115} ->
 				binary_to_list(SN_115);
 			_ ->	
-				{M,S1,SS1} = now(),
-				integer_to_list(M*1000000000000+S1*1000000+SS1) 
+				{M1,S1,SS1} = now(),
+				integer_to_list(M1*1000000000000+S1*1000000+SS1) 
 		end,
 		S = case rfc4627:get_field(Obj, "service") of {ok,SS} -> binary_to_list(SS); _-> none end,
 		case binary_to_list(M) of 
