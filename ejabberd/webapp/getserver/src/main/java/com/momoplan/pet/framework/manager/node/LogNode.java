@@ -494,8 +494,10 @@ public class LogNode {
 //			     <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"1"}
 //			     </body>
 //			     </message>
-				String username = json.getString("username");
-				return username+"已经通过了您的好友请求";
+				//String username = json.getString("username");
+				//return username+"已经通过了您的好友请求";
+				// 2014-10-31 : 于庭要求停止这个类型的推送
+				return null;
 			}else if("2".equals(type)){
 //			     <3>好友删除消息（ejabber不处理)------------------  不提示
 //			     <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="normal" msgtype=“system”>
