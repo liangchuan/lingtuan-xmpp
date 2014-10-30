@@ -113,9 +113,7 @@ set_mask(Domain,FromBin,ToBin,JO) ->
 			end 
 	end.	
 
-set_friend_log(_Domain,_FromBin,_ToBin,JO) ->
-	JO.
-set_friend_log(todo,Domain,FromBin,ToBin,JO) ->
+set_friend_log(Domain,FromBin,ToBin,JO) ->
 	case rfc4627:get_field(JO,"friend_log") of 
 		{ok,_} ->
 			JO;
