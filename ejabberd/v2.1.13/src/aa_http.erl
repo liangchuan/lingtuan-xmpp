@@ -210,7 +210,6 @@ handle_call({handle_http,Req}, _From, State) ->
 						?ERROR_MSG("reload__mask.error sn=~p ; exception=~p",[SN,Err]),
 						http_response({#success{sn=list_to_binary(SN),success=false,entity=exception},Req}) 
 				end;
-			%% 屏蔽全部陌生人
 			"reload_all" when S =:= "mask" ->
 				?INFO_MSG("http mask.reload_all ::> ~p",[Args]),
 				try
