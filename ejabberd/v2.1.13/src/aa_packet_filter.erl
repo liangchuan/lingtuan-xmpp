@@ -102,6 +102,10 @@ set_mask(Domain,FromBin,ToBin,JO) ->
 							{ok,Mask} = rfc4627:get_field(Entity,"mask"),
 							?INFO_MSG("aa_packet_filter__set_mask__on_http key=~p ; mask=~p",[Key,Mask]),
 							gen_server:call(aa_hookhandler,{ecache_cmd,["SET",Key,Mask]}),
+							Key_idx = "mask_set__"++ToStr,
+							{M1,S1,T1} = now(), 
+							Scope = integer_to_list(M1*1000000000000+S1*1000000+T1),
+							gen_server:call(aa_hookhandler,{ecache_cmd,["ZADD",Key_idx,Scope,Key]}),
 							rfc4627:set_field(JO,"mask",Mask);
 						_ ->
 							JO
@@ -109,7 +113,9 @@ set_mask(Domain,FromBin,ToBin,JO) ->
 			end 
 	end.	
 
-set_friend_log(Domain,FromBin,ToBin,JO) ->
+set_friend_log(_Domain,_FromBin,_ToBin,JO) ->
+	JO.
+set_friend_log(todo,Domain,FromBin,ToBin,JO) ->
 	case rfc4627:get_field(JO,"friend_log") of 
 		{ok,_} ->
 			JO;
@@ -187,8 +193,21 @@ reload(friend_log,FromStr,ToStr) ->
 
 reload_all(mask,ToStr) ->
 	To = get_jid(ToStr),
-	%% TODO 
-	To.
+	Key_idx = "mask_set__"++To,
+	CMD = ["ZRANGE",Key_idx,"0","-1"],
+	?INFO_MSG("reload_all_mask_cmd=~p",[CMD]),
+	case gen_server:call(aa_hookhandler,{ecache_cmd,CMD}) of 
+		{ok,Idxs} ->
+			gen_server:call(aa_hookhandler,{ecache_cmd,["DEL",Key_idx]}),
+			?INFO_MSG("reload_all_mask_cmd=~p",[["DEL",Key_idx]]),
+			lists:foreach(fun(KeyBin)->
+				Key = binary_to_list(KeyBin),
+				?INFO_MSG("reload_all_mask_item_cmd=~p",[["DEL",Key]]),
+				gen_server:call(aa_hookhandler,{ecache_cmd,["DEL",Key]}) 
+			end,Idxs);
+		_ ->
+			skip
+	end.		
 
 
 
