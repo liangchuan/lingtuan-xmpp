@@ -1,6 +1,6 @@
 -module(aa_packet_filter).
 
--export([do/1,reload/3]).
+-export([do/1,reload/3,reload_all/2]).
 
 -define(HTTP_HEAD,"application/x-www-form-urlencoded").
 -include("ejabberd.hrl").
@@ -114,13 +114,25 @@ set_friend_log(Domain,FromBin,ToBin,JO) ->
 		{ok,_} ->
 			JO;
 		_ ->
-			case call_http(Domain,<<"get_relation">>,FromBin,ToBin) of 
-				{ok,Entity} ->	
-					{ok,Friend_log} = rfc4627:get_field(Entity,"friend_log"),
-					rfc4627:set_field(JO,"friend_log",Friend_log);
+			%% 2014-10-30 : 先到缓存里找，如果没有则回调并初始化缓存;
+			[FromStr,ToStr]	= [get_jid(binary_to_list(FromBin)),get_jid(binary_to_list(ToBin))],
+			Key = "friend_log__"++FromStr++ToStr,
+			case gen_server:call(aa_hookhandler,{ecache_cmd,["GET",Key]}) of
+				{ok,Bin} when erlang:is_binary(Bin) ->
+					?INFO_MSG("aa_packet_filter__set_friend_log__on_cache key=~p ; mask=~p",[Key,Bin]),
+					rfc4627:set_field(JO,"friend_log",Bin);
 				_ ->
-					JO
-			end
+					case call_http(Domain,<<"get_relation">>,FromBin,ToBin) of 
+						{ok,Entity} ->	
+							{ok,Friend_log} = rfc4627:get_field(Entity,"friend_log"),
+							?INFO_MSG("aa_packet_filter__set_friend_log__on_http key=~p ; mask=~p",[Key,Friend_log]),
+							%% 5 分钟过期
+							gen_server:call(aa_hookhandler,{ecache_cmd,["PSETEX",Key,integer_to_list(1000*60*5),Friend_log]}),
+							rfc4627:set_field(JO,"friend_log",Friend_log);
+						_ ->
+							JO
+					end
+			end 
 	end.	
 
 
@@ -165,6 +177,18 @@ reload(mask,FromStr,ToStr) ->
 	Key = "mask__"++From++To,
 	gen_server:call(aa_hookhandler,{ecache_cmd,["DEL",Key]}),
 	?INFO_MSG("reload__mask__key=~p",[Key]),
+	ok;
+reload(friend_log,FromStr,ToStr) ->
+	[From,To] = [get_jid(FromStr),get_jid(ToStr)],		
+	Key = "friend_log__"++From++To,
+	gen_server:call(aa_hookhandler,{ecache_cmd,["DEL",Key]}),
+	?INFO_MSG("reload__friend_log__key=~p",[Key]),
 	ok.
+
+reload_all(mask,ToStr) ->
+	To = get_jid(ToStr),
+	%% TODO 
+	To.
+
 
 

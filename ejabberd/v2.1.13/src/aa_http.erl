@@ -210,6 +210,45 @@ handle_call({handle_http,Req}, _From, State) ->
 						?ERROR_MSG("reload__mask.error sn=~p ; exception=~p",[SN,Err]),
 						http_response({#success{sn=list_to_binary(SN),success=false,entity=exception},Req}) 
 				end;
+			%% 屏蔽全部陌生人
+			"reload_all" when S =:= "mask" ->
+				?INFO_MSG("http mask.reload_all ::> ~p",[Args]),
+				try
+					{ok,P} = rfc4627:get_field(Obj, "params"),
+					{ok,MASK_TO} = rfc4627:get_field(P, "to"),
+					MASK_TO_STR = case is_binary(MASK_TO) of true -> binary_to_list(MASK_TO); _-> MASK_TO end,
+					case aa_packet_filter:reload_all(mask,MASK_TO_STR) of 
+						ok ->
+							http_response({#success{sn=list_to_binary(SN),success=true,entity=list_to_binary("ok")},Req});
+						_ ->
+							http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary("callback_error")},Req}) 
+					end
+				catch 
+					_:_->
+						Err = erlang:get_stacktrace(),
+						?ERROR_MSG("reload__mask.error sn=~p ; exception=~p",[SN,Err]),
+						http_response({#success{sn=list_to_binary(SN),success=false,entity=exception},Req}) 
+				end;
+			"reload" when S =:= "friend_log" ->
+				?INFO_MSG("http friend_log.reload ::> ~p",[Args]),
+				try
+					{ok,P} = rfc4627:get_field(Obj, "params"),
+					{ok,MASK_FROM} = rfc4627:get_field(P, "from"),
+					{ok,MASK_TO} = rfc4627:get_field(P, "to"),
+					MASK_FROM_STR = case is_binary(MASK_FROM) of true -> binary_to_list(MASK_FROM); _-> MASK_FROM end,
+					MASK_TO_STR = case is_binary(MASK_TO) of true -> binary_to_list(MASK_TO); _-> MASK_TO end,
+					case aa_packet_filter:reload(friend_log,MASK_FROM_STR,MASK_TO_STR) of 
+						ok ->
+							http_response({#success{sn=list_to_binary(SN),success=true,entity=list_to_binary("ok")},Req});
+						_ ->
+							http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary("callback_error")},Req}) 
+					end
+				catch 
+					_:_->
+						Err = erlang:get_stacktrace(),
+						?ERROR_MSG("reload__mask.error sn=~p ; exception=~p",[SN,Err]),
+						http_response({#success{sn=list_to_binary(SN),success=false,entity=exception},Req}) 
+				end;
 			_ ->
 				http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary("method undifine")},Req})
 		end
