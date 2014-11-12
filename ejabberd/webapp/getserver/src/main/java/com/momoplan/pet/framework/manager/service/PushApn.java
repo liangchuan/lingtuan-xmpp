@@ -1,7 +1,6 @@
 package com.momoplan.pet.framework.manager.service;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javapns.Push;
@@ -28,7 +27,7 @@ public class PushApn {
 	 * @param msg 
 	 * @param pwd 密码 123456
 	 */
-	public static void sendMsgApn(String deviceToken,String msg,String pwd,boolean debug,Map<String,String> params,int badge,String cert) throws Exception {
+	public static void push(String deviceToken,String msg,String pwd,boolean debug,Map<String,String> params,int badge,String cert) throws Exception {
 		try {
 			if(cert==null||"".equals(cert)){
 				cert = def_cert;
@@ -64,20 +63,20 @@ public class PushApn {
 		}
 	}
 
-	public static void sendMsgApn(String msg,String pwd,boolean debug,Map<String,String> params, int threads, List<Device> devices ,int badge ) throws Exception{
-		String cert = System.getProperty("user.home")+"/.ssh/ynm.p12";
-		PushNotificationPayload payLoad = new PushNotificationPayload();
-		payLoad.addSound("default"); // 铃音 默认
-		payLoad.addBadge(badge);
-		payLoad.addAlert(msg);
-		if(params!=null){
-			for(String k : params.keySet()){
-				String v = params.get(k);
-				payLoad.addCustomDictionary(k, v);
-			}
-		}
-		Push.payload(payLoad, cert , pwd, !debug, threads,devices);
-	}
+//	public static void sendMsgApn(String msg,String pwd,boolean debug,Map<String,String> params, int threads, List<Device> devices ,int badge ) throws Exception{
+//		String cert = System.getProperty("user.home")+"/.ssh/ynm.p12";
+//		PushNotificationPayload payLoad = new PushNotificationPayload();
+//		payLoad.addSound("default"); // 铃音 默认
+//		payLoad.addBadge(badge);
+//		payLoad.addAlert(msg);
+//		if(params!=null){
+//			for(String k : params.keySet()){
+//				String v = params.get(k);
+//				payLoad.addCustomDictionary(k, v);
+//			}
+//		}
+//		Push.payload(payLoad, cert , pwd, !debug, threads,devices);
+//	}
 	
 	//(String deviceToken,String msg,String pwd,boolean debug,Map<String,String> params) throws Exception {
 
@@ -92,7 +91,7 @@ public class PushApn {
 //		map.put("id", "EC87258C-940C-459F-90AD-6692D3714F87");
 		map.put("msgtype", "normalchat");
 //		sendMsgApn(token,"liangc-test-001","111111",true,map,1);
-		sendMsgApn(token,"liangc-test-002","111111",false,map,1,null);
+		push(token,"liangc-test-002","111111",false,map,1,null);
 		
 		System.out.println("OK...");
 		long e = System.currentTimeMillis();

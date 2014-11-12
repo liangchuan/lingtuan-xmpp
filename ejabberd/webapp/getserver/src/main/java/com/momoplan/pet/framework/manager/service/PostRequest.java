@@ -2,10 +2,11 @@ package com.momoplan.pet.framework.manager.service;
 
 import java.util.UUID;
 
+import javapns.json.JSONObject;
+
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.methods.PostMethod;
-import org.json.JSONObject;
 
 public class PostRequest {
 	
