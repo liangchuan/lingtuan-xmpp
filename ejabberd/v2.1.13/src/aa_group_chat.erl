@@ -189,10 +189,14 @@ reload_group_user(Domain,GroupId) ->
 			skip;
 		{not_found,[],[],[],[]} ->
 			?DEBUG("reload_group_user__clean__gid=",[GroupId]),
-			gen_server:call(aa_hookhandler,{ecache_cmd,["DEL",Group_cache_key]});
+			%% gen_server:call(aa_hookhandler,{ecache_cmd,["DEL",Group_cache_key]});
+			%% 20141115: 防止在一个进程排队，产生瓶颈，特此修正
+			aa_hookhandler:ecache_cmd(["DEL",Group_cache_key]);
 		{ok,_,_,_,_} ->
 			?DEBUG("reload_group_user__set__gid=",[GroupId]),
-			gen_server:call(aa_hookhandler,{ecache_cmd,["SET",Group_cache_key,erlang:term_to_binary(Response)]});
+			%% gen_server:call(aa_hookhandler,{ecache_cmd,["SET",Group_cache_key,erlang:term_to_binary(Response)]});
+			%% 20141115: 防止在一个进程排队，产生瓶颈，特此修正
+			aa_hookhandler:ecache_cmd(["SET",Group_cache_key,erlang:term_to_binary(Response)]);
 		_ ->
 			skip
 	end,
@@ -212,7 +216,9 @@ get_user_list_by_group_id(Domain,GroupId)->
 	end.
 get_user_list_by_group_id(cache,Domain,GroupId) ->
 	Group_cache_key = GroupId++"@"++Domain++"/group_cache",
-	case gen_server:call(aa_hookhandler,{ecache_cmd,["GET",Group_cache_key]}) of
+	%% case gen_server:call(aa_hookhandler,{ecache_cmd,["GET",Group_cache_key]}) of
+	%% 20141115: 防止在一个进程排队，产生瓶颈，特此修正
+	case aa_hookhandler:ecache_cmd(["GET",Group_cache_key]) of
 		{ok,Bin} when erlang:is_binary(Bin) ->
 			erlang:binary_to_term(Bin);
 		_ ->

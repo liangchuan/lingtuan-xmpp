@@ -72,17 +72,21 @@ offline_message_hook_handler(save,#jid{user=FromUser}=From, #jid{user=User,serve
 	ID = xml:get_tag_attr_s("id", Packet),
 	IS_GROUP = aa_group_chat:is_group_chat(To),
 	if IS_GROUP==false,FromUser=/="messageack",User=/="messageack",Type=/="error",Type=/="groupchat",Type=/="headline" ->
-		   SYNCID = ID++"@"++Domain,
-		   %% Time = xml:get_tag_attr_s("msgTime", Packet),
-		   %% ?INFO_MSG("ERROR++++++++++++++++ Time=~p;~n~nPacket=~p",[Time,Packet]),
-		   %% {ok,TimeStamp} = getTime(Time),
-		   %% TODO 7天以后过期
-		   %% Exp = ?EXPIRE+TimeStamp,
-		   KEY = User++"@"++Domain++"/offline_msg",
-		   ?INFO_MSG("::::store_offline_msg::::>type=~p;KEY=~p",[Type,KEY]),
-		   gen_server:call(?MODULE,{store_offline_msg,KEY,SYNCID});
+			SYNCID = ID++"@"++Domain,
+			%% Time = xml:get_tag_attr_s("msgTime", Packet),
+			%% ?INFO_MSG("ERROR++++++++++++++++ Time=~p;~n~nPacket=~p",[Time,Packet]),
+			%% {ok,TimeStamp} = getTime(Time),
+			%% TODO 7天以后过期
+			%% Exp = ?EXPIRE+TimeStamp,
+			KEY = User++"@"++Domain++"/offline_msg",
+			?INFO_MSG("::::store_offline_msg::::>type=~p;KEY=~p",[Type,KEY]),
+			%% gen_server:call(?MODULE,{store_offline_msg,KEY,SYNCID});
+			%% 20141115: 防止因为排队产生瓶颈
+			SCORE = integer_to_list(index_score()),
+			CMD = ["ZADD",KEY,SCORE,SYNCID],
+			aa_hookhandler:ecache_cmd(CMD);
 	   true ->
-		   ok
+			ok
 	end.
 	
 offline_message_hook_handler(#jid{user=FromUser}=From, #jid{user=User,server=Domain}=To, Packet) ->
