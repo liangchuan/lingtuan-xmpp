@@ -83,7 +83,7 @@ public class PushApnQueue {
 					apns_logger.debug("has_badge id="+id);
 					String badgeObj = ((OtpErlangString) tuple.elementAt(6)).stringValue();
 					apns_logger.debug("has_badge id="+id+" ; badgeObj="+badgeObj);
-					badge = Integer.parseInt(badgeObj)+1;
+					badge = Integer.parseInt(badgeObj);
 					apns_logger.debug("has_badge id="+id+" ; badge="+badge);
 				}catch(Exception e){
 					apns_logger.debug("has_badge id="+id+" ; error_msg="+e.getMessage());
