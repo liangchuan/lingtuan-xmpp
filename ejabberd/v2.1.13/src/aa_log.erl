@@ -74,7 +74,10 @@ log(Packet,N) ->
 						?INFO_MSG("write_log ::::> ~p",[Message]),
 						Message;
 					pong ->
-						{logbox,N}!Message
+						%% 2014-11-07 : 这里的消息没有过滤，太多造成hiddenNode 频繁死机
+						%% 				关闭此功能
+						%% {logbox,N}!Message
+						?INFO_MSG("write_log ::::> ~p",[Message]) 
 				end;
 			_ ->
 				skip

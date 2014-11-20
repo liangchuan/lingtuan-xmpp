@@ -8,7 +8,7 @@
 -define(TIME_OUT,1000*15).
 
 
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3,ecache_cmd/1]).
 
 %% ====================================================================
 %% API functions
@@ -368,8 +368,10 @@ server_ack(old,#jid{user=FU,server=FD}=From,To,Packet,State) ->
         if ACK_FROM and ( ( MT=:="normalchat" ) or ( MT=:="groupchat") ) ->
                 case dict:is_key("from", D) of
                         true ->
+								{M8,S8,T8} = now(),
+								ID8 = integer_to_list(M8*1000000000000+S8*1000000+T8),
                                 Attributes = [
-                                        {"id",os:cmd("uuidgen")--"\n"},
+                                        {"id",ID8},
                                         {"to",dict:fetch("from", D)},
                                         {"from","messageack@"++Domain},
                                         {"type","normal"},
@@ -426,15 +428,20 @@ message_handler(#jid{user=FU,server=FD}=From,#jid{server=TD}=To,Packet,State) ->
 	SYNCID = SRC_ID_STR++"@"++Domain, 
 	if ACK_FROM,MT=/=[],MT=/="msgStatus",FU=/="messageack" -> 
 		   ?DEBUG("==> SYNC_RES start => ID=~p",[SRC_ID_STR]), 
-		   SyncRes = handle_call({sync_packet,SYNCID,From,To,Packet},[],State), 
+		   %% SyncRes = handle_call({sync_packet,SYNCID,From,To,Packet},[],State), 
+		   %% 20141115 : 防止在本模块排队产生瓶颈
+		   SyncRes = sync_packet(SYNCID,From,To,Packet), 
 		   ?DEBUG("==> SYNC_RES new => ~p ; ID=~p",[SyncRes,SRC_ID_STR]), 
 		   ack_task({new,SYNCID,From,To,Packet}); 
 	   ACK_FROM,MT=:="msgStatus" -> 
 		   KK = FU++"@"++FD++"/offline_msg", 
 		   %% handle_call({ecache_cmd,["DEL",SYNCID]},[],State), 
 		   ack_sync(SYNCID,State,0),
-		   handle_call({ecache_cmd,["ZREM",KK,SYNCID]},[],State), 
-		   ?WARNING_MSG("[v.140823] ==> SYNC_RES ack => ACK_USER=~p ; ACK_ID=~p",[KK,SYNCID]), 
+		   %% handle_call({ecache_cmd,["ZREM",KK,SYNCID]},[],State), 
+		   %% 20141115 : 防止在本模块排队产生瓶颈
+		   ecache_cmd(["ZREM",KK,SYNCID]), 
+		   ecache_cmd(["DEL",SYNCID]), 
+		   ?WARNING_MSG("[v.141115] ==> SYNC_RES ack => ACK_USER=~p ; ACK_ID=~p",[KK,SYNCID]), 
 		   ack_task({ack,SYNCID}); 
 	   true -> 
 		   skip 
@@ -527,3 +534,39 @@ route_3(From,#jid{user=User,server=Server}=To,Packet,J4B)->
 		Err ->
 			{error,Err}
 	end.
+
+%% 20141115 : 这里要优化一下调用缓存模块的地方
+%% 将节点信息保存在上下文里，而不是 aa_hookhandler 进程里
+%% aa_hookhandler 进程就是瓶颈
+ecache_cmd(Cmd) ->
+	?DEBUG("==== function__ecache_cmd ===> Cmd=~p",[Cmd]),
+	Node = case application:get_env(ecache,node) of 
+		{ok,N0} ->
+			N0;
+		_ ->
+			[Domain|_] = ?MYHOSTS,
+			N = ejabberd_config:get_local_option({ecache_node,Domain}),
+			net_adm:ping(N),
+			N
+	end,
+	case catch rpc:call(Node,ecache_main,cmd,[Cmd]) of 
+		{'EXIT',_} ->
+			net_adm:ping(Node),
+			rpc:call(Node,ecache_main,cmd,[Cmd]);
+		Rtn ->
+			Rtn
+	end.
+			
+sync_packet(K,From,To,Packet) ->
+	{M,S,SS} = now(), 
+	MsgTime = lists:sublist(erlang:integer_to_list(M*1000000000000+S*1000000+SS),1,13),
+        {Tag,E,Attr,Body} = Packet,
+        RAttr0 = lists:map(fun({K,V})-> case K of "msgTime" -> skip; _-> {K,V} end end,Attr),
+        RAttr1 = lists:append([X||X<-RAttr0,X=/=skip],[{"msgTime",MsgTime}]),
+        RPacket = {Tag,E,RAttr1,Body},
+        V = term_to_binary({From,To,RPacket}),
+        ?DEBUG("==== sync_packet ===> insert K=~p~nV=~p",[K,V]),
+        Cmd = ["PSETEX",K,integer_to_list(1000*60*60*24*7),V],
+        R = ecache_cmd(Cmd),
+        aa_offline_mod:offline_message_hook_handler(save,From,To,RPacket),
+		R.
