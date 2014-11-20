@@ -44,7 +44,7 @@ send_offline_msg(JID) ->
 				      try	
 					      %% case gen_server:call(?MODULE,{ecache_cmd,["GET",ID]}) of
 						  case aa_hookhandler:ecache_cmd( ["GET",ID] ) of 
-						      Obj when erlang:is_binary(Obj) ->
+						      {ok,Obj} when erlang:is_binary(Obj) ->
 							      {FF,TT,PP} = erlang:binary_to_term(Obj),
 							      Rtn = case ejabberd_router:route(FF, TT, PP) of
 									    ok -> ok; 
