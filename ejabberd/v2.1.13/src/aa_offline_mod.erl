@@ -36,12 +36,14 @@ send_offline_msg(JID) ->
 	{jid,User,Domain,_,_,_,_} = JID,
 	KEY = User++"@"++Domain++"/offline_msg",
 	?INFO_MSG("@@@@ send_offline_msg :::> KEY=~p >>>>>>>>>>>>>>>>>>>>>>>",[KEY]),
-	R = gen_server:call(?MODULE,{range_offline_msg,KEY}),
+	%% R = gen_server:call(?MODULE,{range_offline_msg,KEY}),
+	R = aa_hookhandler:ecache_cmd(["ZRANGE",KEY,"0","-1"]),
 	%% TODO 这里，如果发送失败了，是需要重新发送的，但是先让他跑起来
 	?INFO_MSG("@@@@ send_offline_msg :::> KEY=~p ; R.size=~p~n",[KEY,length(R)]),
 	lists:foreach(fun(ID)->
 				      try	
-					      case gen_server:call(?MODULE,{ecache_cmd,["GET",ID]}) of
+					      %% case gen_server:call(?MODULE,{ecache_cmd,["GET",ID]}) of
+						  case aa_hookhandler:ecache_cmd( ["GET",ID] ) of 
 						      Obj when erlang:is_binary(Obj) ->
 							      {FF,TT,PP} = erlang:binary_to_term(Obj),
 							      Rtn = case ejabberd_router:route(FF, TT, PP) of
@@ -50,7 +52,9 @@ send_offline_msg(JID) ->
 								    end,
 							      ?INFO_MSG("@ SEND :::::> KEY=~p; ID=~p ",[KEY,ID]);
 						      Other ->	
-							      ZREM_R = gen_server:call(?MODULE,{ecache_cmd,["ZREM",KEY,ID]}),
+							      %% ZREM_R = gen_server:call(?MODULE,{ecache_cmd,["ZREM",KEY,ID]}),
+							      CMD = ["ZREM",KEY,ID],
+								  ZREM_R = aa_hookhandler:ecache_cmd(CMD),
 							      ?INFO_MSG("@ SEND [DEL]::::> KEY=~p; ID=~p; ERR=~p; ZREM_R=~p",[KEY,ID,Other,ZREM_R])	
 					      end
 				      catch
@@ -218,7 +222,8 @@ apns_push(#jid{user=FU,server=FS,resource=FR}=From,#jid{user=TU,server=TS,resour
 			%% #jid{user=User,server=Domain} = jlib:string_to_jid(xml:get_tag_attr_s("to", Packet)),
 			#jid{user=User,server=Domain} = To, 
 			KEY = User++"@"++Domain++"/offline_msg",
-			R = gen_server:call(?MODULE,{range_offline_msg,KEY}),
+			%% R = gen_server:call(?MODULE,{range_offline_msg,KEY}),
+			R = aa_hookhandler:ecache_cmd(["ZRANGE",KEY,"0","-1"]),
 			B = length(R),	
 			Message = {apns_push,ID,F,T,MsgType,Msg,integer_to_list(B)},
 			case MsgType of
