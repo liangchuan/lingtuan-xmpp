@@ -37,7 +37,7 @@ send_offline_msg(JID) ->
 	KEY = User++"@"++Domain++"/offline_msg",
 	?INFO_MSG("@@@@ send_offline_msg :::> KEY=~p >>>>>>>>>>>>>>>>>>>>>>>",[KEY]),
 	%% R = gen_server:call(?MODULE,{range_offline_msg,KEY}),
-	R = aa_hookhandler:ecache_cmd(["ZRANGE",KEY,"0","-1"]),
+	{ok,R} = aa_hookhandler:ecache_cmd(["ZRANGE",KEY,"0","-1"]),
 	%% TODO 这里，如果发送失败了，是需要重新发送的，但是先让他跑起来
 	?INFO_MSG("@@@@ send_offline_msg :::> KEY=~p ; R.size=~p~n",[KEY,length(R)]),
 	lists:foreach(fun(ID)->
@@ -223,7 +223,7 @@ apns_push(#jid{user=FU,server=FS,resource=FR}=From,#jid{user=TU,server=TS,resour
 			#jid{user=User,server=Domain} = To, 
 			KEY = User++"@"++Domain++"/offline_msg",
 			%% R = gen_server:call(?MODULE,{range_offline_msg,KEY}),
-			R = aa_hookhandler:ecache_cmd(["ZRANGE",KEY,"0","-1"]),
+			{ok,R} = aa_hookhandler:ecache_cmd(["ZRANGE",KEY,"0","-1"]),
 			B = length(R),	
 			Message = {apns_push,ID,F,T,MsgType,Msg,integer_to_list(B)},
 			case MsgType of
