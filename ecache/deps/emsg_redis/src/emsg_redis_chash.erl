@@ -3,7 +3,7 @@
 %%% @copyright (C) 2012, PlayMesh, Inc.
 %%%-------------------------------------------------------------------
 
--module(sharded_eredis_chash).
+-module(emsg_redis_chash).
 
 -export([lookup/1, create_ring/1, store_ring/0]).
 
@@ -16,7 +16,7 @@
 
 -spec lookup(term()) -> cnode().
 lookup(Key) ->
-    Ring = case application:get_env(sharded_eredis, ring) of
+    Ring = case application:get_env(emsg_redis, ring) of
                undefined ->
                    store_ring();
                {ok, Ring1} ->
@@ -54,10 +54,10 @@ lookup(Key) ->
 -spec store_ring() ->
     cring().
 store_ring() ->
-    {ok, Pools} = application:get_env(sharded_eredis, pools),
+    {ok, Pools} = application:get_env(emsg_redis, pools),
     {Nodes, _} = lists:unzip(Pools),
-    Ring = sharded_eredis_chash:create_ring(Nodes),
-    ok = application:set_env(sharded_eredis, ring, Ring),
+    Ring = emsg_redis_chash:create_ring(Nodes),
+    ok = application:set_env(emsg_redis, ring, Ring),
     Ring.
 
 -spec create_ring([term()]) -> cring().

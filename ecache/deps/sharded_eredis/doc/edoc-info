@@ -1,4 +1,0 @@
-{application,sharded_eredis}.
-{packages,[]}.
-{modules,[sharded_eredis,sharded_eredis_app,sharded_eredis_chash,
-          sharded_eredis_sup]}.

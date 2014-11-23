@@ -3,7 +3,7 @@
 %%% @copyright (C) 2012, PlayMesh, Inc.
 %%%-------------------------------------------------------------------
 
-{application, sharded_eredis,
+{application, emsg_redis,
  [
   {description, ""},
   {vsn, "1.1"},
@@ -12,6 +12,6 @@
                   kernel,
                   stdlib
                  ]},
-  {mod, { sharded_eredis_app, []}},
+  {mod, { emsg_redis_app, []}},
   {env, []}
 ]}.

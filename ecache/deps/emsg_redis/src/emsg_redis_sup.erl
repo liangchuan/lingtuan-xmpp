@@ -3,7 +3,7 @@
 %%% @copyright (C) 2012, PlayMesh, Inc.
 %%%-------------------------------------------------------------------
 
--module(sharded_eredis_sup).
+-module(emsg_redis_sup).
 
 -behaviour(supervisor).
 
@@ -11,7 +11,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 %% API
--export([start_link/0, start_link/2]).
+-export([start_link/0, start_link/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -22,16 +22,15 @@
 %% API functions
 
 start_link() ->
-    {ok, Pools} = application:get_env(sharded_eredis, pools),
-    {ok, GlobalOrLocal} = application:get_env(sharded_eredis, global_or_local),
-    start_link(Pools, GlobalOrLocal).
+    {ok, Pools} = application:get_env(emsg_redis, pools),
+    start_link(Pools).
 
-start_link(Pools, GlobalOrLocal) ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, [Pools, GlobalOrLocal]).
+start_link(Pools) ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, [Pools]).
 
 %% Supervisor callbacks
 
-init([Pools, GlobalOrLocal]) ->
+init([Pools]) ->
     RestartStrategy = one_for_one,
     MaxRestarts = 10,
     MaxSecondsBetweenRestarts = 10,
@@ -42,13 +41,9 @@ init([Pools, GlobalOrLocal]) ->
     Shutdown = 5000,
     Type = worker,
 
-    sharded_eredis_chash:store_ring(),
+    emsg_redis_chash:store_ring(),
 
     PoolSpecs = lists:map(fun({PoolName, PoolConfig}) ->
-                                  Args = [{name, {GlobalOrLocal, PoolName}},
-                                          {worker_module, eredis}]
-                                      ++ PoolConfig,
-                                  {PoolName, {poolboy, start_link, [Args]},
-                                   Restart, Shutdown, Type, []}
-                          end, Pools),
+        {PoolName, {emsg_redis_pool, start_link, [{PoolName,PoolConfig}]}, Restart, Shutdown, Type, []}
+    end, Pools),
     {ok, {SupFlags, PoolSpecs}}.

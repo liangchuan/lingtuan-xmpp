@@ -3,7 +3,7 @@
 %%% @copyright (C) 2012, PlayMesh, Inc.
 %%%-------------------------------------------------------------------
 
--module(sharded_eredis_app).
+-module(emsg_redis_app).
 
 -behaviour(application).
 
@@ -15,7 +15,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    sharded_eredis_sup:start_link().
+    emsg_redis_sup:start_link().
 
 stop(_State) ->
     ok.
