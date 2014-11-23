@@ -37,16 +37,17 @@ cmd(Pid,Args) ->
 	gen_server:call(Pid,{cmd,Args}).
 
 do_cmd(Args)->	
-	log4erl:info("do_cmd_input ::> ~p",[Args]),	
+	[Do,K|_] = Args,
+	log4erl:info("do_cmd_input ::> do=~p ; Key=~p",[Do,K]),	
 	Result = try
-		sharded_eredis:q(Args)
+		emsg_redis:q(Args)
 	catch 
 		_:_ ->
 			Err = erlang:get_stacktrace(),
-			log4erl:info("exception args=~p ; error=~p",[Args,Err]),
+			log4erl:error("exception args=~p ; error=~p",[Args,Err]),
 			{error,[]}
 	end,
-	log4erl:info("do_cmd_output ::> ~p",[Result]),	
+	log4erl:debug("do_cmd_output ::> ~p",[Result]),	
 	Result.
 
 %% ====================================================================
