@@ -92,9 +92,11 @@ public class PushApnQueue {
 				}finally{
 					//如果是0，说明消息不在队列里，但一定会有消息，这里应该给一个默认值1
 					if(badge<1){
+						apns_logger.debug("badge_empty default 1");			
 						badge = 1;
 					}
 				}
+				apns_logger.debug("badge_result_is "+badge);			
 
 				StringBuffer log = new StringBuffer("\02");
 				log.append(id).append("\01");
@@ -149,7 +151,7 @@ public class PushApnQueue {
 									//String apns_push_pwd = Config.publicConfig.get("apns_push_pwd");
 									String apns_push_pwd = Config.publicConfig.get(cert);
 									
-									apns_logger.debug(id+"::>push="+msg+" ; map="+map+ " ; resmsg="+resmsg+" ; apns_push_pwd="+apns_push_pwd);
+									apns_logger.debug("[debug_push] badge="+badge+" ; "+id+"::>push="+msg+" ; map="+map+" ; resmsg="+resmsg+" ; apns_push_pwd="+apns_push_pwd);
 									PushApn.push(deviceToken, resmsg, apns_push_pwd, isDebug(id), map,badge,cert);
 								}else{
 									apns_logger.debug("id="+id+" ::> devicetoken_is_null");
