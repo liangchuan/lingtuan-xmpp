@@ -78,7 +78,7 @@ public class PushApnQueue {
 				OtpErlangBinary bin = ((OtpErlangBinary) tuple.elementAt(5));
 				String msg = new String(bin.binaryValue());
 
-				int badge = 1;
+				int badge = 0;
 				try{
 					apns_logger.debug("has_badge id="+id);
 					String badgeObj = ((OtpErlangString) tuple.elementAt(6)).stringValue();
@@ -86,9 +86,14 @@ public class PushApnQueue {
 					badge = Integer.parseInt(badgeObj);
 					apns_logger.debug("has_badge id="+id+" ; badge="+badge);
 				}catch(Exception e){
-					apns_logger.debug("has_badge id="+id+" ; error_msg="+e.getMessage());
+					apns_logger.error("has_badge id="+id+" ; error_msg="+e.getMessage());
 					e.printStackTrace();
 					apns_logger.error("badge", e);
+				}finally{
+					//如果是0，说明消息不在队列里，但一定会有消息，这里应该给一个默认值1
+					if(badge<1){
+						badge = 1;
+					}
 				}
 
 				StringBuffer log = new StringBuffer("\02");
