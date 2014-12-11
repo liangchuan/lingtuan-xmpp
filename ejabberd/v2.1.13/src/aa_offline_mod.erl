@@ -224,7 +224,18 @@ apns_push(#jid{user=FU,server=FS,resource=FR}=From,#jid{user=TU,server=TS,resour
 			KEY = User++"@"++Domain++"/offline_msg",
 			%% R = gen_server:call(?MODULE,{range_offline_msg,KEY}),
 			{ok,R} = aa_hookhandler:ecache_cmd(["ZRANGE",KEY,"0","-1"]),
-			B = length(R),	
+			%% {ok,<<"none">>}
+			%% 20141211 : 修正过滤掉无效的 key 
+			R0 = lists:map(fun(K0)->
+				case catch aa_hookhandler:ecache_cmd(["TYPE",K0]) of
+					{ok,<<"none">>} ->
+						skip;
+					Obj0 ->
+						Obj0
+				end
+			end,R),
+			R1 = [ X0 || X0 <- R0 , X0 =/= skip ],
+			B = length(R1),	
 			Message = {apns_push,ID,F,T,MsgType,Msg,integer_to_list(B)},
 			case MsgType of
 				"msgStatus" ->
