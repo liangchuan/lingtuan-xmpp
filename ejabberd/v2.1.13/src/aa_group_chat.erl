@@ -82,10 +82,10 @@ handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=Gr
 		Json = rfc4627:encode(J4),
 		Body = [{xmlelement,"body",[],[{xmlcdata,Json}]}],
 		RPacket = {X,E,RAttr,Body},
+		gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
 		case ejabberd_router:route(To,From,RPacket) of
 			ok ->
 				?DEBUG("###### route_group_type15 OK :::> {From,To,RPacket}=~p",[{To,From,RPacket}]),
-				gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
 				{ok,ok};
 			Err ->
 				?DEBUG("###### route_group_type15 ERR=~p :::> {From,To,RPacket}=~p",[Err,{To,From,RPacket}]),
