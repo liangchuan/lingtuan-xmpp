@@ -226,16 +226,18 @@ apns_push(#jid{user=FU,server=FS,resource=FR}=From,#jid{user=TU,server=TS,resour
 			{ok,R} = aa_hookhandler:ecache_cmd(["ZRANGE",KEY,"0","-1"]),
 			%% {ok,<<"none">>}
 			%% 20141211 : 修正过滤掉无效的 key 
-			R0 = lists:map(fun(K0)->
-				case catch aa_hookhandler:ecache_cmd(["TYPE",K0]) of
-					{ok,<<"none">>} ->
-						skip;
-					Obj0 ->
-						Obj0
-				end
-			end,R),
-			R1 = [ X0 || X0 <- R0 , X0 =/= skip ],
-			B = length(R1),	
+			%% 20141223 : 这里过滤是画蛇添足，没有实际意义只会增加服务器负担
+			%% R0 = lists:map(fun(K0)->
+			%% 	case catch aa_hookhandler:ecache_cmd(["TYPE",K0]) of
+			%% 		{ok,<<"none">>} ->
+			%% 			skip;
+			%% 		Obj0 ->
+			%% 			Obj0
+			%% 	end
+			%% end,R),
+			%% R1 = [ X0 || X0 <- R0 , X0 =/= skip ],
+			%% B = length(R1),	
+			B = length(R),	
 			Message = {apns_push,ID,F,T,MsgType,Msg,integer_to_list(B)},
 			case MsgType of
 				"msgStatus" ->
