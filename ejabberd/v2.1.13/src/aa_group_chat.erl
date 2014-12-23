@@ -53,7 +53,9 @@ handle_cast({route_group_msg,From,To,Packet}, State) ->
 handle_cast(stop, State) ->
 	{stop, normal, State}.
 
+%% 这个地方是用 cast 代理调用的，不要用 call 来调用，当时的笔误
 handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=GroupId,server=GDomain}=To,Packet}, _From, State) ->
+	MID= xml:get_tag_attr_s("id", Packet),
 	SYS_Alert = fun() ->
 		%%TODO 解散了
 		%% <message id="xxxxx" from="yy@group.yuejian.net" to="123456@yuejian.net" type="normal" msgtype=“system”>
@@ -82,9 +84,11 @@ handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=Gr
 		Json = rfc4627:encode(J4),
 		Body = [{xmlelement,"body",[],[{xmlcdata,Json}]}],
 		RPacket = {X,E,RAttr,Body},
-		gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
+		%% 20141223 : 这里不能再用 otp ，瓶颈
+		aa_hookhandler:handle_cast({group_chat_filter,From,To,RPacket,false},#state{}),
 		case ejabberd_router:route(To,From,RPacket) of
 			ok ->
+				%% gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
 				?DEBUG("###### route_group_type15 OK :::> {From,To,RPacket}=~p",[{To,From,RPacket}]),
 				{ok,ok};
 			Err ->
@@ -145,10 +149,12 @@ handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=Gr
 							Json = rfc4627:encode(J4),
 							Body = [{xmlelement,"body",[],[{xmlcdata,Json}]}],
 							RPacket = {X,E,RAttr,Body},
+							%% 20141223 : 这里不能再用 otp ，瓶颈
+							aa_hookhandler:handle_cast({group_chat_filter,From,To,RPacket,false},#state{}),
 							case ejabberd_router:route(To,From,RPacket) of
 								ok ->
-									?DEBUG("route_group_type14 OK :::> {From,To,RPacket}=~p",[{To,From,RPacket}]),
-									gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false});
+									?DEBUG("route_group_type14 OK :::> {From,To,RPacket}=~p",[{To,From,RPacket}]);
+									%% gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false});
 								Err ->
 									?DEBUG("route_group_type14 ERR=~p :::> {From,To,RPacket}=~p",[Err,{To,From,RPacket}]) 
 							end;
@@ -159,7 +165,10 @@ handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=Gr
 								#jid{user=UID,server=Domain,luser=UID,lserver=Domain,resource=[],lresource=[]} 
 							end,UserList),
 							?DEBUG("###### route_group_msg 002 :::> GroupId=~p ; Roster=~p",[GroupId,Roster]),
-							lists:foreach(fun(Target)-> route_msg(From,Target,Packet,GroupId,Groupmember,Groupname,Masklist) end,Roster) 
+							?WARNING_MSG("group_message_title_~p src_msg_id=~p ; roster_size=~p",[GroupId,MID,length(Roster)]),
+							lists:foreach(fun(Target)-> 
+								route_msg(From,Target,Packet,GroupId,Groupmember,Groupname,Masklist,MID) 
+							end,Roster) 
 					end
 			end;
 		Err ->
@@ -287,7 +296,7 @@ get_user_list_by_group_id(do,Domain,GroupId) when is_list(Domain) ->
 				{error,Reason}
      	end.
 
-route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,GroupId,Groupmember,Groupname,Masklist) ->
+route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,GroupId,Groupmember,Groupname,Masklist,MID) ->
 	case FromUser=/=User of
 		true->
 			{X,E,Attr,Body} = Packet,
@@ -305,9 +314,10 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 					end;
 				_-> "groupchat" 
 			end,
+			TO_ID = erlang:integer_to_list(M*1000000000000+S*1000000+SS),
 			RAttr0 = lists:map(fun({K,V})-> 
 				case K of 
-					"id" -> {K,os:cmd("uuidgen")--"\n"};
+					"id" -> {K,TO_ID};
 					"to" -> {K,User++"@"++Domain};
 					"msgtype" -> {K,MT};	
 					"msgTime" -> skip;
@@ -334,10 +344,14 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 			RPacket = {X,E,RAttr3,RBody},
 
 			?DEBUG("###### route_group_msg 003 input :::> {From,To,RPacket}=~p",[{From,To,RPacket}]),
+			%% 20141223 : 这里不能再用 otp ，瓶颈
+			aa_hookhandler:handle_cast({group_chat_filter,From,To,RPacket,false},#state{}),
 			case ejabberd_router:route(From, To, RPacket) of
 				ok ->
+					?WARNING_MSG("group_message_~p src_msg_id=~p ; target_msg_id=~p ; from_user=~p ; to_user=~p ; body=~s",
+												[GroupId,MID,TO_ID,FromUser,User,J4B]),
 					?DEBUG("###### route_group_msg 003 OK :::> {From,To,RPacket}=~p",[{From,To,RPacket}]),
-					gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
+					%% gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
 					{ok,ok};
 				Err ->
 					?DEBUG("###### route_group_msg 003 ERR=~p :::> {From,To,RPacket}=~p",[Err,{From,To,RPacket}]),
