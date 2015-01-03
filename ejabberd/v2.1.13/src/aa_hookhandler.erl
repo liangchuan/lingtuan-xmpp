@@ -410,7 +410,7 @@ server_ack(old,#jid{user=FU,server=FD}=From,To,Packet,State) ->
         end.
 
 
-message_handler(#jid{user=FU,server=FD}=From,#jid{server=TD}=To,Packet,State) ->
+message_handler(#jid{user=FU,server=FD,resource=FR}=From,#jid{server=TD}=To,Packet,State) ->
 	%% TODO 特殊处理
 	%% <message id="xxxxx" from="yy@group.test.com" to="123456@test.com" type="normal" msgtype=“system”>
 	%% TODO 处理 message 消息，进来的都是 message
@@ -445,15 +445,20 @@ message_handler(#jid{user=FU,server=FD}=From,#jid{server=TD}=To,Packet,State) ->
 		   ?DEBUG("==> SYNC_RES new => ~p ; ID=~p",[SyncRes,SRC_ID_STR]);
 		   %% ack_task({new,SYNCID,From,To,Packet}); 
 	   ACK_FROM,MT=:="msgStatus" -> 
-		   KK = FU++"@"++FD++"/offline_msg", 
-		   %% handle_call({ecache_cmd,["DEL",SYNCID]},[],State), 
-		   ack_sync(SYNCID,State,0),
-		   %% handle_call({ecache_cmd,["ZREM",KK,SYNCID]},[],State), 
-		   %% 20141115 : 防止在本模块排队产生瓶颈
-		   ecache_cmd(["ZREM",KK,SYNCID]), 
-		   ecache_cmd(["DEL",SYNCID]), 
-		   ?WARNING_MSG("[v.141223] ==> SYNC_RES ack => ACK_USER=~p ; ACK_ID=~p",[KK,SYNCID]); 
-		   %% ack_task({ack,SYNCID}); 
+ 			case FU =:= "1" of 
+				false ->	
+		   			KK = FU++"@"++FD++"/offline_msg", 
+		   			ack_sync(SYNCID,State,0),
+		   			ecache_cmd(["ZREM",KK,SYNCID]), 
+		   			?WARNING_MSG("[v.141223] ==> SYNC_RES ack => ACK_USER=~p ; ACK_ID=~p",[KK,SYNCID]); 
+				true ->
+					%% 不能删除，而是增加一个 hset 
+		   			HK = FU++"@"++FD++"/"++FR, 
+					{M2,S2,SS2} = now(), 
+					HV = lists:sublist(erlang:integer_to_list(M2*1000000000000+S2*1000000+SS2),1,13),
+					ecache_cmd(["HSET",HK,SYNCID,HV]),
+		   			?WARNING_MSG("[v.150103] ==> SYNC_RES ack_user_1 => ACK_ID=~p ; V=~p",[SYNCID,HV])
+			end;
 	   true -> 
 		   skip 
 	end, 
@@ -570,7 +575,7 @@ ecache_cmd(Cmd) ->
 			Rtn
 	end.
 			
-sync_packet(K,From,To,Packet) ->
+sync_packet(K,From,#jid{user=TU}=To,Packet) ->
 	{M,S,SS} = now(), 
 	MsgTime = lists:sublist(erlang:integer_to_list(M*1000000000000+S*1000000+SS),1,13),
         {Tag,E,Attr,Body} = Packet,
@@ -579,7 +584,15 @@ sync_packet(K,From,To,Packet) ->
         RPacket = {Tag,E,RAttr1,Body},
         V = term_to_binary({From,To,RPacket}),
         ?DEBUG("==== sync_packet ===> insert K=~p~nV=~p",[K,V]),
-        Cmd = ["PSETEX",K,integer_to_list(1000*60*60*24*7),V],
+		%% user＝1并且非群聊时，特殊处理，有效期设为2天
+		IS_GROUP_CHAT = aa_group_chat:is_group_chat(To), 
+		EX = case TU=:="1" of 
+			true when IS_GROUP_CHAT=:=false ->
+        		1000*60*60*24*2;
+			false ->	
+        		1000*60*60*24*7 
+		end,
+        Cmd = ["PSETEX",K,integer_to_list(EX),V],
         R = ecache_cmd(Cmd),
         aa_offline_mod:offline_message_hook_handler(save,From,To,RPacket),
 		R.
