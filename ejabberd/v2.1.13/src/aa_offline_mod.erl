@@ -31,9 +31,10 @@ sm_register_connection_hook_handler(SID, JID, Info) -> ok.
 
 user_available_hook_handler(JID) -> send_offline_msg(JID).
 
-send_offline_msg(JID) ->
+send_offline_msg(#jid{user=User,server=Domain,resource=Resource}=JID) ->
 	%% JID={jid,"cc","test.com","Smack","cc","test.com","Smack"} 
-	{jid,User,Domain,_,_,_,_} = JID,
+	%% {jid,User,Domain,_,_,_,_} = JID,
+	%% if user=1 and is not gropuchat then ... 
 	KEY = User++"@"++Domain++"/offline_msg",
 	?INFO_MSG("@@@@ send_offline_msg :::> KEY=~p >>>>>>>>>>>>>>>>>>>>>>>",[KEY]),
 	%% R = gen_server:call(?MODULE,{range_offline_msg,KEY}),
@@ -41,28 +42,46 @@ send_offline_msg(JID) ->
 	%% TODO 这里，如果发送失败了，是需要重新发送的，但是先让他跑起来
 	?INFO_MSG("@@@@ send_offline_msg :::> KEY=~p ; R.size=~p~n",[KEY,length(R)]),
 	lists:foreach(fun(ID)->
-				      try	
-					      %% case gen_server:call(?MODULE,{ecache_cmd,["GET",ID]}) of
-						  case aa_hookhandler:ecache_cmd( ["GET",ID] ) of 
-						      {ok,Obj} when erlang:is_binary(Obj) ->
-							      {FF,TT,PP} = erlang:binary_to_term(Obj),
-							      Rtn = case ejabberd_router:route(FF, TT, PP) of
-									    ok -> ok; 
-									    Err -> "Error: "++Err
-								    end,
-							      ?INFO_MSG("@ SEND :::::> KEY=~p; ID=~p ",[KEY,ID]);
-						      Other ->	
-							      %% ZREM_R = gen_server:call(?MODULE,{ecache_cmd,["ZREM",KEY,ID]}),
-							      CMD = ["ZREM",KEY,ID],
-								  ZREM_R = aa_hookhandler:ecache_cmd(CMD),
-							      ?INFO_MSG("@ SEND [DEL]::::> KEY=~p; ID=~p; ERR=~p; ZREM_R=~p",[KEY,ID,Other,ZREM_R])	
-					      end
-				      catch
-					      E:I ->
-						      ?INFO_MSG("~p ; ~p",[E,I])	
-				      end,
-				      ok
-		      end,R),	
+		try	
+			%% 如果是小秘书帐户，需要过滤hset中的key，如果有则不需要发送
+			SEND = case User =:= "1" of
+				true ->
+					HK = User++"@"++Domain++"/"++Resource,
+					case aa_hookhandler:ecache_cmd( ["HGET",HK,ID] ) of 
+						{ok,undefined} ->
+							true;
+						_ ->
+							false
+					end;
+				false ->
+					true
+			end,
+			case SEND of 
+				true ->			
+		    		%% case gen_server:call(?MODULE,{ecache_cmd,["GET",ID]}) of
+		    		case aa_hookhandler:ecache_cmd( ["GET",ID] ) of 
+		    		    {ok,Obj} when erlang:is_binary(Obj) ->
+		  			      {FF,TT,PP} = erlang:binary_to_term(Obj),
+		  			      Rtn = case ejabberd_router:route(FF, TT, PP) of
+		  					    ok -> ok; 
+		  					    Err -> "Error: "++Err
+		  				    end,
+		  			      ?INFO_MSG("@ SEND :::::> KEY=~p; ID=~p ",[KEY,ID]);
+		    		    Other ->	
+		  			      %% ZREM_R = gen_server:call(?MODULE,{ecache_cmd,["ZREM",KEY,ID]}),
+		  			      CMD = ["ZREM",KEY,ID],
+		  				  ZREM_R = aa_hookhandler:ecache_cmd(CMD),
+		  			      ?INFO_MSG("@ SEND [DEL]::::> KEY=~p; ID=~p; ERR=~p; ZREM_R=~p",[KEY,ID,Other,ZREM_R])	
+		    		end;
+				_ ->
+					skip
+			end
+		catch
+		    E:I ->
+		        ?INFO_MSG("~p ; ~p",[E,I])	
+		end,
+		ok
+    end,R),	
 	?INFO_MSG("@@@@ send_offline_message ::>KEY=~p  <<<<<<<<<<<<<<<<<",[KEY]),
 	ok.
 
