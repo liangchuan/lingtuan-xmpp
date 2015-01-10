@@ -98,6 +98,8 @@ set_mask(Domain,FromBin,ToBin,JO) ->
 			case aa_hookhandler:ecache_cmd(["GET",Key]) of
 				{ok,Bin} when erlang:is_binary(Bin) ->
 					?INFO_MSG("aa_packet_filter__set_mask__on_cache key=~p ; mask=~p",[Key,Bin]),
+					%% 150110: get_mask_user接口有些变动,增加一个push参数，如果这个参数为1就推送否则不推	
+					%% 需求来自 戚银
 					MaskPush = binary_to_list(Bin),
 					[Mask,Push] = case string:tokens(MaskPush,",") of 
 						[A1,A2] ->
@@ -117,6 +119,8 @@ set_mask(Domain,FromBin,ToBin,JO) ->
 								false ->
 									MaskBin
 							end,
+							%% 150110: get_mask_user接口有些变动,增加一个push参数，如果这个参数为1就推送否则不推	
+							%% 需求来自 戚银
 							Push = case rfc4627:get_field(Entity,"push") of 
 								{ok,Obj1} when is_binary(Obj1) ->
 									binary_to_list(Obj1);
