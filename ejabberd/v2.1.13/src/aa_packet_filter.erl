@@ -98,22 +98,45 @@ set_mask(Domain,FromBin,ToBin,JO) ->
 			case aa_hookhandler:ecache_cmd(["GET",Key]) of
 				{ok,Bin} when erlang:is_binary(Bin) ->
 					?INFO_MSG("aa_packet_filter__set_mask__on_cache key=~p ; mask=~p",[Key,Bin]),
-					rfc4627:set_field(JO,"mask",Bin);
+					MaskPush = binary_to_list(Bin),
+					[Mask,Push] = case string:tokens(MaskPush,",") of 
+						[A1,A2] ->
+							[A1,A2];
+						[B1] ->
+							[B1,"0"]
+					end,
+					rfc4627:set_field(JO,"mask",list_to_binary(Mask)),
+					rfc4627:set_field(JO,"push",list_to_binary(Push));
 				_ ->
 					case call_http(Domain,<<"get_mask_user">>,FromBin,ToBin) of 
 						{ok,Entity} ->	
-							{ok,Mask} = rfc4627:get_field(Entity,"mask"),
-							?INFO_MSG("aa_packet_filter__set_mask__on_http key=~p ; mask=~p",[Key,Mask]),
+							{ok,MaskBin} = rfc4627:get_field(Entity,"mask"),
+							Mask = case is_binary(MaskBin) of 
+								true ->
+									binary_to_list(MaskBin);
+								false ->
+									MaskBin
+							end,
+							Push = case rfc4627:get_field(Entity,"push") of 
+								{ok,Obj1} when is_binary(Obj1) ->
+									binary_to_list(Obj1);
+								{ok,Obj2} ->
+									Obj2;
+								_ ->
+									"0"
+							end,
+							?INFO_MSG("aa_packet_filter__set_mask__on_http key=~p ; mask=~p ; push=~p",[Key,Mask,Push]),
 							%% gen_server:call(aa_hookhandler,{ecache_cmd,["SET",Key,Mask]}),
 							%% 20141115 : 这里有瓶颈，不能排队取,特此修改
-							aa_hookhandler:ecache_cmd(["SET",Key,Mask]),
+							Val = Mask++","++Push,
+							aa_hookhandler:ecache_cmd(["SET",Key,Val]),
 							Key_idx = "mask_set__"++ToStr,
 							{M1,S1,T1} = now(), 
 							Scope = integer_to_list(M1*1000000000000+S1*1000000+T1),
 							%% gen_server:call(aa_hookhandler,{ecache_cmd,["ZADD",Key_idx,Scope,Key]}),
 							%% 20141115 : 这里有瓶颈，不能排队取,特此修改
 							aa_hookhandler:ecache_cmd(["ZADD",Key_idx,Scope,Key]),
-							rfc4627:set_field(JO,"mask",Mask);
+							rfc4627:set_field(JO,"mask",list_to_binary(Mask));
 						_ ->
 							JO
 					end
