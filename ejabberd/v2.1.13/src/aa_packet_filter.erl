@@ -107,8 +107,8 @@ set_mask(Domain,FromBin,ToBin,JO) ->
 						[B1] ->
 							[B1,"0"]
 					end,
-					rfc4627:set_field(JO,"mask",list_to_binary(Mask)),
-					rfc4627:set_field(JO,"push",list_to_binary(Push));
+					J1 = rfc4627:set_field(JO,"mask",list_to_binary(Mask)),
+					rfc4627:set_field(J1,"push",list_to_binary(Push));
 				_ ->
 					case call_http(Domain,<<"get_mask_user">>,FromBin,ToBin) of 
 						{ok,Entity} ->	
@@ -140,7 +140,8 @@ set_mask(Domain,FromBin,ToBin,JO) ->
 							%% gen_server:call(aa_hookhandler,{ecache_cmd,["ZADD",Key_idx,Scope,Key]}),
 							%% 20141115 : 这里有瓶颈，不能排队取,特此修改
 							aa_hookhandler:ecache_cmd(["ZADD",Key_idx,Scope,Key]),
-							rfc4627:set_field(JO,"mask",list_to_binary(Mask));
+							J1 = rfc4627:set_field(JO,"mask",list_to_binary(Mask)),
+							rfc4627:set_field(J1,"push",list_to_binary(Push));
 						_ ->
 							JO
 					end
