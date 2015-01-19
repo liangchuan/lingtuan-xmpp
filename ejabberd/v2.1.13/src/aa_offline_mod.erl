@@ -274,12 +274,19 @@ apns_push(#jid{user=FU,server=FS,resource=FR}=From,#jid{user=TU,server=TS,resour
 									{ok,JO,_} = rfc4627:decode(erlang:list_to_binary(JSON)),
 									%% 150110: get_mask_user接口有些变动,增加一个push参数，如果这个参数为1就推送否则不推	
 									%% 需求来自 戚银
-									case rfc4627:get_field(JO,"push") of 
-										{ok,<<"1">>} ->
+									%% only for msgtype=normalchat 
+									case MsgType =:= "normalchat" of 
+										true ->
+											case rfc4627:get_field(JO,"push") of 
+												{ok,<<"1">>} ->
+													?INFO_MSG("push_apn_by_log_pong ::::> ~p",[Message]),
+													{logbox,Node}!Message;
+												Other ->
+													?INFO_MSG("[v.150110] apns_push_skip push=~p ; id=~p",[Other,ID]) 
+											end;
+										_ ->
 											?INFO_MSG("push_apn_by_log_pong ::::> ~p",[Message]),
-											{logbox,Node}!Message;
-										Other ->
-											?INFO_MSG("[v.150110] apns_push_skip push=~p ; id=~p",[Other,ID]) 
+											{logbox,Node}!Message 
 									end
 							end;
 						_ ->
