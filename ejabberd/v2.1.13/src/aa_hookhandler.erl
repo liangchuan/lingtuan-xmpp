@@ -320,6 +320,55 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 														route_3(From,JID3,Packet,J4B)	
 													end,ToList) 
 											end;
+										{ok,<<"22">>} ->
+											%% 2015-01-25
+											%% 有人被邀请加入多人会话或者有人被踢出的消息（ejabber需要处理）groupmember 
+											%% 最多传递5个人的数据（用来显示头像拼接成多人对话图片）      apns推送内容（无）        
+											%% content字段： 如果是有人被邀请加入讨论组：xx,yy,zz被邀请加入群组     如果是有人被踢出：xx被管理员移出群组
+											TK = "grouplist",
+											%% {ok,ToList} = rfc4627:get_field(JO,TK),
+											case rfc4627:get_field(JO,TK) of
+												not_found ->
+													skip;
+												{ok,ToList} ->
+													?DEBUG("T22T22T22T22 ::::> ToList=~p",[ToList]),
+													{obj,TL3} = JO,
+													TL3_1=lists:map(fun({K3,V3})-> case K3=:=TK of true->skip;false->{K3,V3} end end,TL3),
+													TL3_2=[X||X<-TL3_1,X=/=skip],
+													JO_1 = {obj,TL3_2},
+													?DEBUG("T15T15T15T15 ::::> JO_1=~p",[JO_1]), 
+													J4B = list_to_binary(rfc4627:encode(JO_1)),
+													?DEBUG("T22T22T22T22 ::::> J4B=~p",[J4B]), 
+													lists:foreach(fun(To3) ->
+														UID = binary_to_list(To3),
+														JID3=#jid{user=UID,server=Domain,luser=UID,
+																  lserver=Domain,resource=[],lresource=[]},
+														route_3(To,JID3,Packet,J4B)	
+													end,ToList) 
+											end;
+										{ok,<<"23">>} ->
+											%% 2015-01-25
+											%% 好友推荐的消息（ejabber需要处理） apns推送内容（无）  
+											TK = "grouplist",
+											case rfc4627:get_field(JO,TK) of
+												not_found ->
+													skip;
+												{ok,ToList} ->
+													?DEBUG("T22T22T22T22 ::::> ToList=~p",[ToList]),
+													{obj,TL3} = JO,
+													TL3_1=lists:map(fun({K3,V3})-> case K3=:=TK of true->skip;false->{K3,V3} end end,TL3),
+													TL3_2=[X||X<-TL3_1,X=/=skip],
+													JO_1 = {obj,TL3_2},
+													?DEBUG("T15T15T15T15 ::::> JO_1=~p",[JO_1]), 
+													J4B = list_to_binary(rfc4627:encode(JO_1)),
+													?DEBUG("T22T22T22T22 ::::> J4B=~p",[J4B]), 
+													lists:foreach(fun(To3) ->
+														UID = binary_to_list(To3),
+														JID3=#jid{user=UID,server=Domain,luser=UID,
+																  lserver=Domain,resource=[],lresource=[]},
+														route_3(To,JID3,Packet,J4B)	
+													end,ToList) 
+											end;
 										_ ->
 											case TUser =:= "0" of
 												true ->
