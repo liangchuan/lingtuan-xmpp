@@ -307,6 +307,15 @@ public class PushApnQueue {
 				//</message>	
 				String username = json.getString("username");
 				return "抱歉，"+username+"暂时不想认识这个朋友，可能是机缘尚未成熟";
+			}else if("13".equals(type)){
+				//add by liangc 150126
+//				单人消息<14>发送分享消息：    apns推送内容（用户昵称分享了一条链接）  friend_log 相对关系（0：陌生人；1：好友；2：二度好友）             mask  0 未屏蔽  1屏蔽  
+//				 <message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“normalchat”>
+//				 <body>{"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"13","url":"url地址","title":"标题"."content":"内容","thumb":"图片地址","friend_log”:“0”,"mask":"0"}
+//				 </body>
+//				 </message>				
+				String username = json.getString("username");
+				return username+"分享了一条链接";
 			}
 			
 			
@@ -371,7 +380,17 @@ public class PushApnQueue {
 				String username = json.getString("username");
 				String name = json.getString("name");
 				return username+"发来了"+name+"的名片";
+			}else if("13".equals(type)){
+				//add by liangc 150126
+//				多人消息<14>发送分享消息： 
+//				<message id="xxxxx" from="xx@test.com" to="yy@test.com" type="chat" msgtype=“groupchat”>
+//				<body>{"mask":"0","groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"userid":"xx","username":"张三","userimage":"http://wwww.1.jpg","usergender":"0","type":"13","url":"url地址","title":"标题"."content":"内容","thumb":"图片地址","friend_log”:“0”,"mask":"0"}
+//					</body>
+//				</message>
+				String username = json.getString("username");
+				return username+"分享了一条链接";
 			}
+			
 		}else if("system".equalsIgnoreCase(msgtype)){
 //			（3）.约您妹系统消息定义?
 			if("-1".equals(type)){
