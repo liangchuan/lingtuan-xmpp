@@ -38,7 +38,7 @@ public class PushApnQueue {
 	
 	@PostConstruct
 	public void init(){
-		for(int i=500;i<1500;i++){
+		for(int i=1000;i<3000;i++){
 			Thread t = new Thread(new Runnable(){
 				@Override
 				public void run() {
@@ -530,7 +530,20 @@ public class PushApnQueue {
 				//凡2014-06-25 15:26:18
 				//修改下这两个传递的内容 您被邀请您加入xxxx（xxxx为多人对话名称）
 				String groupname = json.getString("groupname");
-				return "您被邀请加入"+groupname;
+				
+				//戚银 2015-02-09 
+//				<13>创建加入多人会话消息（ejabber不需要处理）groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）          
+//				apns推送内容（你被xxx邀请加入群聊）       新增参数说明：  invitename   邀请人的用户名
+//			     http发送消息格式
+//			     <message id="xxxxx" from="xx@test.com" to="yy@group.test.com" type="normal" msgtype=“system”>
+//			     <body>{groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"type":"12","invitename":"张三"}</body>
+//			     </message>
+				if(json.has("invitename")){
+					String invitename = json.getString("invitename");
+					return "您被"+invitename+"邀请加入群聊";
+				}else{
+					return "您被邀请加入"+groupname;
+				}
 			}else if("13".equals(type)){
 //			     <14>邀请某些人加入多人会话消息（ejabber需要处理）groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）------------------  logo+约您妹  xxx邀请您加入xxxx（xxxx为群组名称）
 //			     http发送消息格式
@@ -540,7 +553,22 @@ public class PushApnQueue {
 				//凡2014-06-25 15:26:18
 				//修改下这两个传递的内容 您被邀请您加入xxxx（xxxx为多人对话名称）
 				String groupname = json.getString("groupname");
-				return "您被邀请加入"+groupname;
+				//戚银 2015-02-09 
+//				 <14>邀请某些人加入多人会话消息（ejabber需要处理）groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）      apns推送内容（你被xxx邀请加入群聊）   新增参数说明：  invitename   邀请人的用户名
+//			     http发送消息格式
+//			     <message id="xxxxx" from="xx@test.com" to"yy@group.test.com" type="normal" msgtype=“system”>
+//			     <body>{groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"type":"13","invitename":"张三","grouplist":[”123456","123456","123456"]}</body>
+//			     </message>
+//			     ejabber服务器需要给grouplist列表发送的消息格式（ejabber转发时去掉grouplist）
+//			     <message id="xxxxx" from="yy@group.test.com" to"123456@test.com" type="normal" msgtype=“system”>
+//			     <body>{groupid":"xx","groupname":"群组名称","groupmember":[{"image":"用户头像url","gender":"1"},{"image":"用户头像url","gender":"1"}],"type":"13","invitename":"张三"}</body>
+//			     </message>
+				if(json.has("invitename")){
+					String invitename = json.getString("invitename");
+					return "您被"+invitename+"邀请加入群聊";
+				}else{
+					return "您被邀请加入"+groupname;
+				}
 			}else if("14".equals(type)){
 //			     <15>踢出某个多人会话成员消息（ejabber不需要处理，这里特别注意的是自己退出多人对话（非管理员），不发送xmpp消息）groupmember 最多传递5个人的数据（用来显示头像拼接成多人对话图片）------------------ logo+约您妹  您被管理员踢出xxxx（xxxx为群组名称）
 //			     <message id="xxxxx" from="xx@test.com" to"yy@test.com" type="normal" msgtype=“system”>
