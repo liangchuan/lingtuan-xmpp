@@ -45,20 +45,22 @@ do_cmd(Args)->
 			Do
 	end,
 	%% 2014-12-15 : 这里要统计发消息的数量，需要取得发送人信息
-	case string:to_upper(Do1) of
-		"PSETEX" ->
-			%% TODO 记录发消息的日志，要找到发送人			
-			[_,_,_,Packet] = Args,
-			{From,_,_} = erlang:binary_to_term(Packet),	
-			SF = erlang:tuple_to_list(From),
-			[jid,US,SS|_] = SF,
-			US1 = case is_binary(US) of true-> binary_to_list(US) ; false -> US end,
-			SS1 = case is_binary(SS) of true-> binary_to_list(SS) ; false -> SS end,
-			F1 = US1++"@"++SS1,
-			log4erl:info("PSETEX\01~p\01~p",[F1,K]);
-		_ ->
-			log4erl:info("do_cmd_input ::> do=~p ; Key=~p",[Do,K])
-	end,
+	try 
+		case string:to_upper(Do1) of
+			"PSETEX" ->
+				%% TODO 记录发消息的日志，要找到发送人			
+				[_,_,_,Packet] = Args,
+				{From,_,_} = erlang:binary_to_term(Packet),	
+				SF = erlang:tuple_to_list(From),
+				[jid,US,SS|_] = SF,
+				US1 = case is_binary(US) of true-> binary_to_list(US) ; false -> US end,
+				SS1 = case is_binary(SS) of true-> binary_to_list(SS) ; false -> SS end,
+				F1 = US1++"@"++SS1,
+				log4erl:info("PSETEX\01~p\01~p",[F1,K]);
+			_ ->
+				log4erl:info("do_cmd_input ::> do=~p ; Key=~p",[Do,K])
+		end
+	catch _:_ -> skip end,
 	Result = try
 		emsg_redis:q(Args)
 	catch 
