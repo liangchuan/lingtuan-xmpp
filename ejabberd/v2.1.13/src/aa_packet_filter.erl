@@ -183,7 +183,7 @@ call_http(Domain,Method,FromBin,ToBin)->
 	{M,S,SS} = now(),
 	SN = erlang:integer_to_list(M*1000000000000+S*1000000+SS),
  	HTTPTarget =  ejabberd_config:get_local_option({http_server,Domain}),
-	ParamObj = {obj,[ {"sn",SN}, {"service",<<"ejabberd">>}, {"method",Method},{"params",{obj,[{"from",FromBin},{"to",ToBin}]}}]}, 
+	ParamObj = {obj,[ {"sn",list_to_binary(SN)}, {"service",<<"ejabberd">>}, {"method",Method},{"params",{obj,[{"from",FromBin},{"to",ToBin}]}}]}, 
 	?INFO_MSG("aa_packet_filter__call_http__paramObj=~p ; method=~p ; domain=~p ~nhttp_url=~p",[ParamObj,Method,Domain,HTTPTarget]),
 	Form = "body="++rfc4627:encode(ParamObj),
 	case httpc:request(post,{ HTTPTarget ,[], ?HTTP_HEAD , Form },[],[] ) of
