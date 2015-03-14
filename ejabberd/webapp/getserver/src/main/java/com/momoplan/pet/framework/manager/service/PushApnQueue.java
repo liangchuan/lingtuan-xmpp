@@ -19,7 +19,12 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.momoplan.pet.framework.manager.node.apnspush.ApnsPushLog;
-
+/**
+ * 
+ * @author liangc
+ *	2015-03-12 modify by liangc :  
+ *		戚银 111 之前的群聊变更名称为“讨论组”，提示消息涉及到群聊文字的统一改为讨论组（如，xxx加入群聊，改成xxx加入讨论组）
+ */
 @Component
 public class PushApnQueue {
 	
@@ -540,7 +545,8 @@ public class PushApnQueue {
 //			     </message>
 				if(json.has("invitename")){
 					String invitename = json.getString("invitename");
-					return "您被"+invitename+"邀请加入群聊";
+					//return "您被"+invitename+"邀请加入群聊";
+					return "您被"+invitename+"邀请加入讨论组";
 				}else{
 					return "您被邀请加入"+groupname;
 				}
@@ -565,7 +571,8 @@ public class PushApnQueue {
 //			     </message>
 				if(json.has("invitename")){
 					String invitename = json.getString("invitename");
-					return "您被"+invitename+"邀请加入群聊";
+					//return "您被"+invitename+"邀请加入群聊";
+					return "您被"+invitename+"邀请加入讨论组";
 				}else{
 					return "您被邀请加入"+groupname;
 				}
