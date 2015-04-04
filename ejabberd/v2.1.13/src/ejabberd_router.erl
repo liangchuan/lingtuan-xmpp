@@ -313,6 +313,7 @@ do_route(OrigFrom, OrigTo, SrcPacket) ->
 	%% 2014-10-19 : 应对 16 号的屏蔽需求
 	OrigPacket = aa_packet_filter:do({r141016,OrigFrom,OrigTo,SrcPacket}), 
     ?DEBUG("route~n\tfrom ~p~n\tto ~p~n\tpacket ~p~n", [OrigFrom, OrigTo, OrigPacket]),
+	aa_mongodb:save_mongo(OrigFrom, OrigTo, OrigPacket),
     HookRes = ejabberd_hooks:run_fold(filter_packet, {OrigFrom, OrigTo, OrigPacket}, []), 
     ?DEBUG("do_route_hook_res hookRes=~p ; packet=~p", [HookRes,OrigPacket]),
     case HookRes of

@@ -188,7 +188,7 @@ init([]) ->
 	%% add by liangc : hook handler sup
 	AAHookhandlerSup ={ aa_hookhandler,{aa_hookhandler_sup, start_link, []}, permanent, infinity, supervisor, [aa_hookhandler_sup] },
 	AAHTTPSup ={ aa_http,{aa_http_sup, start_link, []}, permanent, infinity, supervisor, [aa_http_sup] },
-
+	AAMongoSup = { aa_mongo,{aa_mongo_sup, start_link, []}, permanent, infinity, supervisor, [aa_mongo_sup] },
 	
     {ok, {{one_for_one, 10, 1},
 	  [
@@ -213,6 +213,7 @@ init([]) ->
 	   CacheTabSupervisor,
 	   Listener,
 	   AAHookhandlerSup,
+	   AAMongoSup,
 	   AAHTTPSup
 	]}}.
 

@@ -248,6 +248,15 @@ handle_call({handle_http,Req}, _From, State) ->
 						?ERROR_MSG("reload__mask.error sn=~p ; exception=~p",[SN,Err]),
 						http_response({#success{sn=list_to_binary(SN),success=false,entity=exception},Req}) 
 				end;
+			"reload" when S =:= "opt_userlist" ->
+				try
+					Return = aa_mongodb:set_opt_userlist(),
+					http_response({#success{sn=list_to_binary(SN),success=true,entity=erlang:term_to_binary(Return)},Req}) 
+				catch 
+					_:_->
+						Err = erlang:get_stacktrace(),
+						http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary(Err)},Req}) 
+				end;
 			_ ->
 				http_response({#success{sn=list_to_binary(SN),success=false,entity=list_to_binary("method undifine")},Req})
 		end
