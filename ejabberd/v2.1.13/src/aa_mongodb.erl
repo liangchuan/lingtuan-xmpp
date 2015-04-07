@@ -286,7 +286,21 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 
 normal_deel_json_to_bson(JSON)->
-	{ok,{obj,Ljson},_} = rfc4627:decode(erlang:list_to_binary(JSON)),
+	{ok,{obj,LLjson},_} = rfc4627:decode(erlang:list_to_binary(JSON)),
+	Ljson =
+		case lists:keyfind("type", 1, LLjson) of
+			{_,Type}->
+				NType =
+					if
+						erlang:is_binary(Type)->
+							string:to_integer(erlang:binary_to_list(Type));
+						true->
+							Type
+					end,
+				lists:keyreplace("type", 1, LLjson, {"type",NType});
+			_->
+				LLjson
+		end,
 	Ncover = lists:keydelete("cover", 1, Ljson),
 	Tsonlist = 
 		case lists:keyfind("groupmember", 1, Ncover) of
