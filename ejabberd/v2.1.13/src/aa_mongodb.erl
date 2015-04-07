@@ -61,16 +61,11 @@ init([]) ->
 
 %%异步存库
 save_mongo(From, To, Packet)->
-	try
-	    case Packet of 
-	    	{_,"message",_Attr,_} ->
-				gen_server:cast(?MODULE, {save_mongo,From, To,Packet});
-			_->
-				skip
-		end
-	catch
-		E:R->
-			?ERROR_MSG("Error happen at ~p :save_mongo()reason:~p",[?MODULE,{E,R}])
+    case Packet of 
+    	{_,"message",_Attr,_} ->
+			gen_server:cast(?MODULE, {save_mongo,From, To,Packet});
+		_->
+			skip
 	end.
 
 %% handle_call/3
@@ -120,41 +115,15 @@ handle_cast({save_mongo,#jid{luser = Fromstr} = _FromJid, #jid{luser = Tostr} = 
 			{M,S,SS} = now(), 
 			MsgTime = lists:sublist(erlang:integer_to_list(M*1000000000000+S*1000000+SS),1,13)
 	end,
-	case MsgType of
-		"normalchat"->
-			From = erlang:list_to_integer(Fromstr),
-			To = erlang:list_to_integer(Tostr),
-			Result =  lists:member(To, State#state.userlist),
-			FResult = lists:member(From, State#state.userlist),
-			if
-				Result =:= false,FResult =:= false->
-					skip;
-				true->
-					[JSON] = aa_log:get_text_message_from_packet(Packet),
-					Body = normal_deel_json_to_bson(JSON),
-					DbMsg = {
-							 id,list_to_binary(Mid),
-							 from,From,
-							 to,To,
-							 type,list_to_binary(Type),
-							 msgtype,list_to_binary(MsgType),
-							 msgTime,erlang:list_to_integer(MsgTime),
-							 body,Body,
-							 isread,[]
-							 },
-					aa_mongo_senter:sysn_write([DbMsg])
-			end;
-		"groupchat"->
+	try
+		case MsgType of
+			"normalchat"->
 				From = erlang:list_to_integer(Fromstr),
 				To = erlang:list_to_integer(Tostr),
-				case aa_group_chat:is_group_chat(ToJid) of
-					false->
-						Result =  lists:member(To, State#state.userlist);
-					true->
-						Result = lists:member(From, State#state.userlist)
-				end,
+				Result =  lists:member(To, State#state.userlist),
+				FResult = lists:member(From, State#state.userlist),
 				if
-					Result =:= false->
+					Result =:= false,FResult =:= false->
 						skip;
 					true->
 						[JSON] = aa_log:get_text_message_from_packet(Packet),
@@ -171,7 +140,7 @@ handle_cast({save_mongo,#jid{luser = Fromstr} = _FromJid, #jid{luser = Tostr} = 
 								 },
 						aa_mongo_senter:sysn_write([DbMsg])
 				end;
-		"super_groupchat"->
+			"groupchat"->
 					From = erlang:list_to_integer(Fromstr),
 					To = erlang:list_to_integer(Tostr),
 					case aa_group_chat:is_group_chat(ToJid) of
@@ -198,35 +167,66 @@ handle_cast({save_mongo,#jid{luser = Fromstr} = _FromJid, #jid{luser = Tostr} = 
 									 },
 							aa_mongo_senter:sysn_write([DbMsg])
 					end;
-		"system"->
-			To = erlang:list_to_integer(Tostr),
-			From = erlang:list_to_integer(Fromstr),
-			case aa_group_chat:is_group_chat(ToJid) of
-				false->
-					Result =  lists:member(To, State#state.userlist);
-				true->
-					Result = lists:member(From, State#state.userlist)
-			end,
-			if
-				Result=:= false->
-					skip;
-				true->
-					[JSON] = aa_log:get_text_message_from_packet(Packet),
-					Body = normal_deel_json_to_bson(JSON),
-					DbMsg = {
-							 id,list_to_binary(Mid),
-							 from,From,
-							 to,To,
-							 type,list_to_binary(Type),
-							 msgtype,list_to_binary(MsgType),
-							 msgTime,erlang:list_to_integer(MsgTime),
-							 body,Body,
-							 isread,[]
-							 },
-					aa_mongo_senter:sysn_write([DbMsg])
-			end;
-		_->
-			skip
+			"super_groupchat"->
+						From = erlang:list_to_integer(Fromstr),
+						To = erlang:list_to_integer(Tostr),
+						case aa_group_chat:is_group_chat(ToJid) of
+							false->
+								Result =  lists:member(To, State#state.userlist);
+							true->
+								Result = lists:member(From, State#state.userlist)
+						end,
+						if
+							Result =:= false->
+								skip;
+							true->
+								[JSON] = aa_log:get_text_message_from_packet(Packet),
+								Body = normal_deel_json_to_bson(JSON),
+								DbMsg = {
+										 id,list_to_binary(Mid),
+										 from,From,
+										 to,To,
+										 type,list_to_binary(Type),
+										 msgtype,list_to_binary(MsgType),
+										 msgTime,erlang:list_to_integer(MsgTime),
+										 body,Body,
+										 isread,[]
+										 },
+								aa_mongo_senter:sysn_write([DbMsg])
+						end;
+			"system"->
+				To = erlang:list_to_integer(Tostr),
+				From = erlang:list_to_integer(Fromstr),
+				case aa_group_chat:is_group_chat(ToJid) of
+					false->
+						Result =  lists:member(To, State#state.userlist);
+					true->
+						Result = lists:member(From, State#state.userlist)
+				end,
+				if
+					Result=:= false->
+						skip;
+					true->
+						[JSON] = aa_log:get_text_message_from_packet(Packet),
+						Body = normal_deel_json_to_bson(JSON),
+						DbMsg = {
+								 id,list_to_binary(Mid),
+								 from,From,
+								 to,To,
+								 type,list_to_binary(Type),
+								 msgtype,list_to_binary(MsgType),
+								 msgTime,erlang:list_to_integer(MsgTime),
+								 body,Body,
+								 isread,[]
+								 },
+						aa_mongo_senter:sysn_write([DbMsg])
+				end;
+			_->
+				skip
+		end
+	catch
+		E:R->
+			?ERROR_MSG("Error happen at ~p :save_mongo()reason:~p",[?MODULE,{E,R}])
 	end,
 	{noreply, State};
 					

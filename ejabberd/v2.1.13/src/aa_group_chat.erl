@@ -165,7 +165,7 @@ handle_call({route_group_msg,#jid{user=FromUser,server=Domain}=From,#jid{user=Gr
 								#jid{user=UID,server=Domain,luser=UID,lserver=Domain,resource=[],lresource=[]} 
 							end,UserList),
 							?DEBUG("###### route_group_msg 002 :::> GroupId=~p ; Roster=~p",[GroupId,Roster]),
-							?WARNING_MSG("group_message_title_~p src_msg_id=~p ; roster_size=~p",[GroupId,MID,length(Roster)]),
+							?DEBUG("group_message_title_~p src_msg_id=~p ; roster_size=~p",[GroupId,MID,length(Roster)]),
 							lists:foreach(fun(Target)-> 
 								route_msg(From,Target,Packet,GroupId,Groupmember,Groupname,Masklist,MID) 
 							end,Roster) 
@@ -348,7 +348,7 @@ route_msg(#jid{user=FromUser}=From,#jid{user=User,server=Domain}=To,Packet,Group
 			aa_hookhandler:handle_cast({group_chat_filter,From,To,RPacket,false},#state{}),
 			case ejabberd_router:route(From, To, RPacket) of
 				ok ->
-					?WARNING_MSG("group_message_~p src_msg_id=~p ; target_msg_id=~p ; from_user=~p ; to_user=~p ; body=~s",
+					?DEBUG("group_message_~p src_msg_id=~p ; target_msg_id=~p ; from_user=~p ; to_user=~p ; body=~s",
 												[GroupId,MID,TO_ID,FromUser,User,J4B]),
 					?DEBUG("###### route_group_msg 003 OK :::> {From,To,RPacket}=~p",[{From,To,RPacket}]),
 					%% gen_server:cast(aa_hookhandler,{group_chat_filter,From,To,RPacket,false}),
