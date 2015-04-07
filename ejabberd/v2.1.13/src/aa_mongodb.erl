@@ -226,7 +226,7 @@ handle_cast({save_mongo,#jid{luser = Fromstr} = _FromJid, #jid{luser = Tostr} = 
 		end
 	catch
 		E:R->
-			?ERROR_MSG("Error happen at ~p :save_mongo()reason:~p",[?MODULE,{E,R}])
+			?ERROR_MSG("Error happen at ~p :save_mongo()reason:~p",[?MODULE,{E,R,erlang:get_stacktrace()}])
 	end,
 	{noreply, State};
 					
