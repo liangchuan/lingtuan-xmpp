@@ -293,7 +293,7 @@ normal_deel_json_to_bson(JSON)->
 				NType =
 					if
 						erlang:is_binary(Type)->
-							string:to_integer(erlang:binary_to_list(Type));
+							erlang:list_to_integer(erlang:binary_to_list(Type));
 						true->
 							Type
 					end,
