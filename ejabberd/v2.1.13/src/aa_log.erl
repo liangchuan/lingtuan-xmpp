@@ -32,7 +32,8 @@ store(Packet) ->
 init([]) ->
 	[Domain|_] = ?MYHOSTS,
 	N = ejabberd_config:get_local_option({log_node,Domain}),
-	{ok, #state{node=N}}.
+	State = #state{node=N},
+	{ok,State}.
 
 get_text_message_from_packet( Packet )->
 	{xmlelement,"message",_,Message } = Packet,
@@ -89,7 +90,13 @@ log(Packet,N) ->
 			{error,E,I}
 	end.
 
-
+handle_cast(calculat_msg,State) ->
+	{Y,M,D} = date(),
+	DataValue = integer_to_list(Y)++integer_to_list(M)++integer_to_list(D),
+	KEY = "calculat_msg_"++DataValue,
+	Cmd = ["INCR",KEY],
+	aa_hookhandler:ecache_cmd(Cmd),
+	{noreply, State};
 
 handle_cast({store,Packet},#state{node=N}=State) ->
 	log(Packet,N),
