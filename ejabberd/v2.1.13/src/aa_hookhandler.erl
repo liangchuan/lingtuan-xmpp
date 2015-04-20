@@ -48,6 +48,7 @@ user_send_packet_handler(#jid{user=FUser,server=FDomain}=From, #jid{user=TUser,s
 								%% gen_server:cast(?MODULE,{group_chat_filter,From,To,Packet}),
 								%% gen_server:cast(aa_log,{store,Packet});
 								%% 20141223 : 为了提高效率，这个地方必须放弃 otp
+								 gen_server:cast(aa_log,calculat_msg),
 								handle_cast({group_chat_filter,From,To,Packet},#state{});
 							_ ->
 								%% gen_server:cast(?MODULE,{server_ack,From,To,Packet}),
