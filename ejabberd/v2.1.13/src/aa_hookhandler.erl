@@ -272,6 +272,28 @@ filter_cast({#jid{server=Domain}=From,#jid{user=TUser}=To,Packet,SACK}, State) -
 														route_3(To,JID3,Packet,J4B)	
 													end,ToList) 
 											end;
+										{ok,<<"18">>} ->
+											TK = "grouplist",
+											%% {ok,ToList} = rfc4627:get_field(JO,TK),
+											case rfc4627:get_field(JO,TK) of
+												not_found ->
+													skip;
+												{ok,ToList} ->
+													?DEBUG("T18T18T18T18 ::::> ToList=~p",[ToList]),
+													{obj,TL3} = JO,
+													TL3_1=lists:map(fun({K3,V3})-> case K3=:=TK of true->skip;false->{K3,V3} end end,TL3),
+													TL3_2=[X||X<-TL3_1,X=/=skip],
+													JO_1 = {obj,TL3_2},
+													?DEBUG("T18T18T18T18 ::::> JO_1=~p",[JO_1]), 
+													J4B = list_to_binary(rfc4627:encode(JO_1)),
+													?DEBUG("T18T18T18T18 ::::> J4B=~p",[J4B]), 
+													lists:foreach(fun(To3) ->
+														UID = binary_to_list(To3),
+														JID3=#jid{user=UID,server=Domain,luser=UID,
+																  lserver=Domain,resource=[],lresource=[]},
+														route_3(To,JID3,Packet,J4B)	
+													end,ToList) 
+											end;
 										{ok,<<"20">>} ->
 											%% 140823 : add by liangc 
 											%% 宇庭新需求：社交圈新动态消息（ejabber需要处理）      apns推送内容（无） 
